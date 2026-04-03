@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>專業間隔記憶單字卡 App - 圖片強化版</title>
+    <title>AI 單字學習卡 - 字體強化版</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
@@ -17,39 +17,38 @@
         .flip-card-front, .flip-card-back {
             position: absolute; width: 100%; height: 100%;
             -webkit-backface-visibility: hidden; backface-visibility: hidden; 
-            border-radius: 1.5rem; padding: 1.5rem;
-            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
-            display: flex; flex-direction: column; overflow: hidden;
+            border-radius: 1.5rem; overflow: hidden;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+            display: flex; flex-direction: column;
         }
-        .flip-card-front { justify-content: center; align-items: center; background: white; border: 1px solid #e2e8f0; z-index: 2; transform: rotateY(0deg); }
-        .flip-card-back { transform: rotateY(180deg); background: #f8fafc; border: 1px solid #cbd5e1; text-align: left; z-index: 1; }
+        .flip-card-front { 
+            background-image: url('https://images.unsplash.com/photo-1500382017468-9049fed747ef?q=80&w=1200&auto=format&fit=crop');
+            background-size: cover; background-position: center;
+            z-index: 2; transform: rotateY(0deg); 
+            justify-content: center; align-items: center;
+        }
+        .flip-card-back { 
+            transform: rotateY(180deg); 
+            background-image: url('https://images.unsplash.com/photo-1507525428034-b723cf961d3e?q=80&w=1200&auto=format&fit=crop');
+            background-size: cover; background-position: center;
+            text-align: left; z-index: 1;
+        }
+        .glass-overlay {
+            background: rgba(0, 0, 0, 0.55); 
+            backdrop-filter: blur(3px);
+            height: 100%; width: 100%;
+            padding: 2.5rem 2rem; display: flex; flex-direction: column;
+        }
         .btn-action { @apply flex flex-col items-center justify-center py-2 rounded-xl text-white font-bold text-xs transition-all active:scale-95 shadow-sm relative; }
         .key-hint { @apply absolute -top-2 -right-1 bg-white text-slate-800 w-5 h-5 rounded-full flex items-center justify-center border border-slate-200 shadow-sm text-[10px] font-black; }
     </style>
 </head>
-<body class="bg-slate-50 min-h-screen flex flex-col items-center py-8 px-4 font-sans text-slate-800">
-
-    <div id="helpModal" class="fixed inset-0 bg-slate-900/60 z-50 flex items-center justify-center opacity-0 pointer-events-none transition-opacity p-4">
-        <div class="bg-white w-full max-w-md rounded-3xl p-8 shadow-2xl">
-            <h3 class="text-2xl font-black text-blue-600 mb-6">操作說明</h3>
-            <div class="space-y-4 text-sm font-bold">
-                <div class="flex gap-2"><kbd class="bg-slate-100 px-2 rounded shadow font-black">Space</kbd> 快速翻頁 / <kbd class="bg-slate-100 px-2 rounded shadow font-black">Enter</kbd> 快速朗讀</div>
-                <div class="p-3 bg-red-50 rounded-xl border border-red-100 text-red-700">按數字鍵1 - Again: 移到第 2 個位置</div>
-                <div class="p-3 bg-orange-50 rounded-xl border border-orange-100 text-orange-700">按數字鍵2 - Hard: 插入到清單中間</div>
-                <div class="p-3 bg-blue-50 rounded-xl border border-blue-100 text-blue-700">按數字鍵3 - Good: 移到清單最後面</div>
-                <div class="p-3 bg-green-50 rounded-xl border border-green-100 text-green-700">按數字鍵4 - Easy: 直接移除卡片</div>
-            </div>
-            <button onclick="toggleHelp()" class="w-full mt-8 py-3 bg-slate-800 text-white rounded-xl font-black uppercase">開始練習</button>
-        </div>
-    </div>
+<body class="bg-slate-100 min-h-screen flex flex-col items-center py-8 px-4 font-sans text-slate-800">
 
     <div class="w-full max-w-md flex gap-2 mb-6">
-        <label class="flex-grow flex items-center justify-center h-20 border-2 border-dashed border-blue-400 rounded-xl cursor-pointer bg-white hover:bg-blue-50 transition-all shadow-sm">
-            <div class="flex items-center space-x-3 text-blue-600 font-black text-xl">
-                <i class="fa-solid fa-file-circle-plus"></i><span>匯入 CSV</span>
-            </div>
-            <input id="csvFileInput" type="file" accept=".csv" class="hidden" />
-        </label>
+        <div class="flex-grow flex items-center justify-center h-20 border-2 border-blue-400 rounded-xl bg-white shadow-sm">
+            <span class="text-xl font-black text-blue-600"><i class="fa-solid fa-book-open mr-2"></i>單字學習模式</span>
+        </div>
         <button onclick="toggleHelp()" class="w-20 h-20 bg-white border-2 border-slate-200 rounded-xl text-slate-500 hover:bg-slate-50 hover:text-blue-500 transition-all flex items-center justify-center shadow-sm">
             <i class="fa-solid fa-screwdriver-wrench text-4xl"></i>
         </button>
@@ -73,50 +72,230 @@
     <div id="cardContainer" class="flip-card w-full max-w-md hidden">
         <div class="flip-card-inner" id="cardInner" onclick="toggleFlip()">
             <div class="flip-card-front">
-                <div class="flex items-center gap-4">
-                    <h2 id="frontWord" class="text-5xl font-black text-slate-800"></h2>
-                    <button onclick="speakText(event, 'front')" class="p-3 bg-slate-50 hover:bg-blue-50 rounded-full text-blue-500"><i class="fa-solid fa-volume-high text-xl"></i></button>
+                <div class="relative flex flex-col items-start">
+                    <button onclick="speakText(event, 'front')" class="mb-4 p-3 bg-blue-600 hover:bg-blue-700 rounded-full text-white transition-all shadow-lg active:scale-90 z-10">
+                        <i class="fa-solid fa-volume-high text-xl"></i>
+                    </button>
+                    <div class="bg-white/80 backdrop-blur-md px-10 py-6 rounded-[2rem] shadow-2xl border border-white/50">
+                        <h2 id="frontWord" class="text-6xl font-black text-slate-900 tracking-tight"></h2>
+                    </div>
                 </div>
-                <button onclick="resetQuiz(event)" class="absolute bottom-10 flex items-center gap-2 px-6 py-3 border-2 border-red-200 text-red-500 bg-red-50 hover:bg-red-100 rounded-full text-sm font-black uppercase shadow-sm"><i class="fa-solid fa-trash-can"></i> 清除紀錄並重新開始</button>
             </div>
             <div class="flip-card-back">
-                <div class="h-full flex flex-col">
-                    <div class="w-full h-40 bg-slate-200 rounded-xl mb-4 overflow-hidden shadow-inner relative">
-                        <div id="imageLoading" class="absolute inset-0 flex items-center justify-center text-slate-400 font-bold animate-pulse">Loading Image...</div>
-                        <img id="wordImage" src="" alt="Word Visual" class="w-full h-full object-cover transition-opacity duration-500 opacity-0" onload="this.classList.remove('opacity-0'); document.getElementById('imageLoading').classList.add('hidden')">
-                    </div>
-                    
-                    <div class="flex-grow overflow-y-auto pr-1">
-                        <h3 id="backTranslation" class="text-3xl font-black text-slate-900 mb-1"></h3>
-                        <span id="backPos" class="inline-block px-2 py-0.5 bg-blue-100 text-blue-700 font-bold italic text-xs rounded mb-4"></span>
-                        <div class="border-t border-slate-200 my-4 shadow-sm"></div>
-                        <div class="flex items-start gap-3">
-                            <button onclick="speakText(event, 'back')" class="shrink-0 mt-1 p-2 bg-blue-50 rounded-full text-blue-500 hover:bg-blue-100 transition-colors"><i class="fa-solid fa-volume-high text-base"></i></button>
-                            <div><p id="backSentence" class="text-lg font-semibold text-slate-700 leading-tight mb-2"></p><p id="backSentenceTrans" class="text-slate-500 text-sm font-medium"></p></div>
+                <div class="glass-overlay text-white">
+                    <div class="flex-grow overflow-y-auto pr-2">
+                        <h3 id="backTranslation" class="text-4xl font-black mb-2 drop-shadow-md"></h3>
+                        <span id="backPos" class="inline-block px-3 py-1 bg-yellow-400 text-slate-900 font-black italic text-sm rounded-lg mb-6 shadow-md"></span>
+                        
+                        <div class="border-t border-white/30 my-6"></div>
+                        
+                        <div class="flex flex-col items-start gap-4">
+                            <button onclick="speakText(event, 'back')" class="p-3 bg-white text-blue-700 rounded-full shadow-xl transition-all active:scale-90">
+                                <i class="fa-solid fa-volume-high text-lg"></i>
+                            </button>
+                            <div class="drop-shadow-sm space-y-4">
+                                <p id="backSentence" class="text-3xl font-bold leading-snug"></p>
+                                <p id="backSentenceTrans" class="text-2xl font-medium text-white/95"></p>
+                            </div>
                         </div>
                     </div>
-                    
-                    <div class="grid grid-cols-4 gap-2 mt-4 pt-4 border-t" onclick="event.stopPropagation()">
-                        <button onclick="handleAction('again')" class="btn-action bg-red-500"><span class="key-hint">1</span>Again</button>
-                        <button onclick="handleAction('hard')" class="btn-action bg-orange-500"><span class="key-hint">2</span>Hard</button>
-                        <button onclick="handleAction('good')" class="btn-action bg-blue-500"><span class="key-hint">3</span>Good</button>
-                        <button onclick="handleAction('easy')" class="btn-action bg-green-600"><span class="key-hint">4</span>Easy</button>
+                    <div class="grid grid-cols-4 gap-2 mt-4 pt-4 border-t border-white/20" onclick="event.stopPropagation()">
+                        <button onclick="handleAction('again')" class="btn-action bg-red-600 hover:bg-red-700"><span class="key-hint">1</span>Again</button>
+                        <button onclick="handleAction('hard')" class="btn-action bg-orange-500 hover:bg-orange-600"><span class="key-hint">2</span>Hard</button>
+                        <button onclick="handleAction('good')" class="btn-action bg-blue-600 hover:bg-blue-700"><span class="key-hint">3</span>Good</button>
+                        <button onclick="handleAction('easy')" class="btn-action bg-green-600 hover:bg-green-700"><span class="key-hint">4</span>Easy</button>
                     </div>
                 </div>
             </div>
         </div>
     </div>
 
+    <div id="helpModal" class="fixed inset-0 bg-slate-900/60 z-50 flex items-center justify-center opacity-0 pointer-events-none transition-opacity p-4">
+        <div class="bg-white w-full max-w-md rounded-3xl p-8 shadow-2xl text-left">
+            <h3 class="text-2xl font-black text-blue-600 mb-6">操作說明</h3>
+            <div class="space-y-4 text-sm font-bold">
+                <div class="flex gap-2"><kbd class="bg-slate-100 px-2 rounded shadow font-black">Space</kbd> 快速翻頁 / <kbd class="bg-slate-100 px-2 rounded shadow font-black">Enter</kbd> 快速朗讀</div>
+                <div class="p-3 bg-red-50 rounded-xl border border-red-100 text-red-700">按數字鍵1 - Again: 第 2 個位置</div>
+                <div class="p-3 bg-orange-50 rounded-xl border border-orange-100 text-orange-700">按數字鍵2 - Hard: 插入中間</div>
+                <div class="p-3 bg-blue-50 rounded-xl border border-blue-100 text-blue-700">按數字鍵3 - Good: 移至最後</div>
+                <div class="p-3 bg-green-50 rounded-xl border border-green-100 text-green-700">按數字鍵4 - Easy: 直接移除</div>
+            </div>
+            <button onclick="toggleHelp()" class="w-full mt-8 py-3 bg-slate-800 text-white rounded-xl font-black uppercase tracking-widest">開始練習</button>
+        </div>
+    </div>
+
     <script>
+        const csvContent = `ability,"能力\nn.\nShe has the ability to solve complex problems.\n她有解決複雜問題的能力。"
+abroad,"在國外\nadv.\nMy sister decided to study abroad in England.\n我姐姐決定去英國留學。"
+absence,"缺席\nn.\nHis absence from the meeting was noticed by everyone.\n每個人都注意到了他沒來參加會議。"
+accept,"接受\nv.\nPlease accept my sincere apology.\n請接受我誠摯的道歉。"
+accident,"意外\nn.\nI met an old friend by accident at the airport.\n我在機場意外地遇到了一位老朋友。"
+achieve,"達成；實現\nv.\nYou can achieve anything if you work hard enough.\n只要你夠努力，你可以實現任何事情。"
+admire,"欽佩；欣賞\nv.\nI really admire your courage to speak the truth.\n我真的很欽佩你說出真相的勇氣。"
+advantage,"優點；優勢\nn.\nBeing bilingual is a great advantage in the job market.\n會說兩種語言在就業市場上是一個很大的優勢。"
+afford,"負擔得起\nv.\nWe can't afford to buy a new car this year.\n我們今年負擔不起買新車的費用。"
+ancient,"古老的\nadj.\nThey visited the ancient temples in Rome.\n他們參觀了羅馬的古老寺廟。"
+annual,"每年的；年度的\nadj.\nThe company holds an annual meeting every January.\n公司每年一月都會舉行年度會議。"
+apologize,"道歉\nv.\nYou should apologize to her for being late.\n你應該因為遲到而向她道歉。"
+appreciate,"感謝；欣賞\nv.\nI really appreciate your help with my homework.\n我非常感謝你幫我做功課。"
+artificial,"人工的；人造的\nadj.\nThis plant is made of artificial materials.\n這株植物是由人工材料製成的。"
+available,"可得到的；有空的\nadj.\nIs this seat available?\n這個座位有人坐嗎？"
+average,"平均的\nadj.\nThe average temperature in summer is 30 degrees Celsius.\n夏天的平均氣溫是攝氏 30 度。"
+balance,"平衡\nn.\nIt is important to keep a balance between work and life.\n在工作與生活之間保持平衡是很重要的。"
+benefit,"好處；利益\nn.\nEating vegetables brings many benefits to your health.\n吃蔬菜對你的健康有很多好處。"
+calculate,"計算\nv.\nCan you calculate the total cost for me?\n你能幫我計算一下總費用嗎？"
+cancel,"取消\nv.\nThe game was canceled because of the heavy rain.\n比賽因為大雨而取消了。"
+category,"種類；類別\nn.\nThese books are divided into three categories.\n這些書被分為三類。"
+character,"性格；角色\nn.\nHe is the main character in the movie.\n他是這部電影裡的主角。"
+colleague,"同事\nn.\nI am going to have lunch with my colleagues.\n我要和我的同事們一起去吃午餐。"
+combine,"結合\nv.\nHydrogen and oxygen combine to form water.\n氫和氧結合形成水。"
+comfortable,"舒服的\nadj.\nThis sofa is very comfortable to sit on.\n這張沙發坐起來很舒服。"
+communicate,"溝通\nv.\nThey communicate with each other through emails.\n他們透過電子郵件互相溝通。"
+compare,"比較\nv.\nDon't compare yourself with others.\n不要拿自己跟別人比較。"
+complain,"抱怨\nv.\nHe complained about the noise in the street.\n他抱怨街道上的噪音。"
+concentrate,"專心\nv.\nI find it hard to concentrate with the music playing.\n音樂放著的時候，我覺得難以專心。"
+confirm,"確認\nv.\nPlease call to confirm your reservation.\n請打電話確認您的預約。"
+consequence,"結果；後果\nn.\nYou must be prepared to face the consequences of your actions.\n你必須準備好面對你行為的後果。"
+consider,"考慮\nv.\nPlease consider my suggestion before you make a decision.\n在你做決定之前請考慮我的建議。"
+contribute,"貢獻；捐助\nv.\nMany people contributed money to the charity.\n許多人捐錢給慈善機構。"
+convenient,"方便的\nadj.\nThe shop is in a very convenient location.\n這家店的位置非常方便。"
+create,"創造\nv.\nShe wants to create a new style of music.\n她想要創造一種新的音樂風格。"
+culture,"文化\nn.\nLearning a language is also learning about the culture.\n學習語言也是在學習文化。"
+damage,"損害；破壞\nn.\nThe earthquake caused a lot of damage to the building.\n地震對這棟建築物造成了很大的損害。"
+decide,"決定\nv.\nI haven't decided what to wear for the party yet.\n我還沒決定派對要穿什麼。"
+delicious,"美味的\nadj.\nMy mother cooked a delicious dinner for us.\n我媽媽為我們做了一頓美味的晚餐。"
+describe,"描述\nv.\nCan you describe the man you saw yesterday?\n你能描述一下你昨天看到的那個人嗎？"
+different,"不同的\nadj.\nMy hobbies are different from yours.\n我的愛好跟你的不同。"
+difficult,"困難的\nadj.\nThe math test was more difficult than I expected.\n數學考試比我預期的還要難。"
+education,"教育\nn.\nEducation is key to a bright future.\n教育是通往光明未來的關鍵。"
+efficient,"有效率的\nadj.\nThe new system is much more efficient than the old one.\n新系統比舊系統有效率得多。"
+eliminate,"消除；排除\nv.\nWe need to eliminate the possibility of error.\n我們需要排除錯誤的可能性。"
+emphasize,"強調\nv.\nOur teacher emphasized the importance of regular practice.\n我們的老師強調了規律練習的重要性。"
+encourage,"鼓勵\nv.\nMy parents always encourage me to try new things.\n我的父母總是鼓勵我嘗試新事物。"
+environment,"環境\nn.\nWe should protect the environment for future generations.\n我們應該為了後代保護環境。"
+excellent,"優秀的\nadj.\nHe did an excellent job on the presentation.\n他的簡報做得非常出色。"
+experience,"經驗；經歷\nn.\nShe has a lot of experience in teaching English.\n她在英語教學方面有很多經驗。"
+explain,"解釋\nv.\nCan you explain how this machine works?\n你能解釋一下這台機器是怎麼運作的嗎？"
+famous,"著名的\nadj.\nTaiwan is famous for its delicious street food.\n台灣以其美味的小吃聞名。"
+flexible,"有彈性的\nadj.\nMy working hours are very flexible.\n我的工作時間非常有彈性。"
+frequent,"頻繁的\nadj.\nFrequent exercise can help you stay healthy.\n頻繁的運動能幫助你保持健康。"
+generous,"慷慨的\nadj.\nIt was very generous of you to lend me the money.\n你借錢給我真是太慷慨了。"
+government,"政府\nn.\nThe government is planning to build a new park.\n政府正計劃建造一個新公園。"
+history,"歷史\nn.\nI am very interested in ancient history.\n我對古代歷史非常感興趣。"
+identify,"辨認；鑑定\nv.\nThe police used fingerprints to identify the suspect.\n警方利用指紋來辨認嫌疑犯。"
+imagine,"想像\nv.\nCan you imagine living on Mars?\n你能想像住在火星上嗎？"
+important,"重要的\nadj.\nHealth is more important than wealth.\n健康比財富更重要。"`;
+
         let words = [], rawWords = [], initialTotal = 0, isFlipped = false;
         let stats = { again: 0, hard: 0, good: 0, easy: 0, total: 0 };
 
-        function toggleHelp() {
-            const m = document.getElementById('helpModal');
-            const isOpen = m.classList.contains('opacity-100');
-            m.classList.toggle('opacity-0', isOpen); m.classList.toggle('pointer-events-none', isOpen);
-            m.classList.toggle('opacity-100', !isOpen); m.classList.toggle('pointer-events-auto', !isOpen);
+        window.onload = function() {
+            const saved = localStorage.getItem('flashcard_progress');
+            if (saved) {
+                try {
+                    const d = JSON.parse(saved);
+                    if (d.words && d.words.length > 0 && confirm("偵測到上次進度，是否接續？")) {
+                        words = d.words; rawWords = d.rawWords; initialTotal = d.initialTotal; stats = d.stats;
+                        startApp();
+                        return;
+                    }
+                } catch(e) { localStorage.removeItem('flashcard_progress'); }
+            }
+            parseCSV(csvContent);
+        };
+
+        function parseCSV(text) {
+            rawWords = [];
+            let row = [], field = '', inQuotes = false;
+            for (let i = 0; i < text.length; i++) {
+                const char = text[i], nextChar = text[i + 1];
+                if (inQuotes) {
+                    if (char === '"' && nextChar === '"') { field += '"'; i++; }
+                    else if (char === '"') inQuotes = false;
+                    else field += char;
+                } else {
+                    if (char === '"') inQuotes = true;
+                    else if (char === ',') { row.push(field); field = ''; }
+                    else if (char === '\n' || char === '\r') {
+                        if (char === '\r' && nextChar === '\n') i++;
+                        row.push(field); 
+                        if (row.length >= 2) processRowData(row);
+                        row = []; field = '';
+                    } else field += char;
+                }
+            }
+            if (field || row.length > 0) { row.push(field); if (row.length >= 2) processRowData(row); }
+            if (rawWords.length > 0) {
+                words = JSON.parse(JSON.stringify(rawWords));
+                shuffleArray(words);
+                initialTotal = words.length;
+                startApp();
+            }
         }
+
+        function processRowData(row) {
+            const word = row[0].trim();
+            const details = row[1].split('\n').map(s => s.trim());
+            rawWords.push({ word, trans: details[0]||"無翻譯", pos: details[1]||"", sent: details[2]||"", sentTrans: details[3]||"" });
+        }
+
+        function startApp() {
+            document.getElementById('statsArea').classList.remove('hidden');
+            document.getElementById('cardContainer').classList.remove('hidden');
+            renderCard();
+        }
+
+        function renderCard() {
+            if (!words.length) { alert("練習完成！"); localStorage.removeItem('flashcard_progress'); location.reload(); return; }
+            const data = words[0];
+            document.getElementById('frontWord').innerText = data.word;
+            document.getElementById('backTranslation').innerText = data.trans;
+            document.getElementById('backPos').innerText = data.pos;
+            document.getElementById('backSentence').innerText = data.sent;
+            document.getElementById('backSentenceTrans').innerText = data.sentTrans;
+            document.getElementById('backPos').style.display = data.pos ? 'inline-block' : 'none';
+            updateStatsUI();
+            if (!isFlipped) speak(data.word);
+        }
+
+        function handleAction(type) {
+            if (!words.length) return;
+            const currentCard = words.shift();
+            stats.total++; stats[type]++;
+            if (type === 'again') words.splice(1, 0, currentCard);
+            else if (type === 'hard') words.splice(Math.floor(words.length / 2), 0, currentCard);
+            else if (type === 'good') words.push(currentCard);
+            
+            isFlipped = false;
+            document.getElementById('cardInner').parentElement.classList.remove('flipped');
+            setTimeout(() => { renderCard(); saveProgress(); }, 300);
+        }
+
+        function toggleFlip() { 
+            if (isFlipped) return; 
+            isFlipped = true;
+            document.getElementById('cardInner').parentElement.classList.add('flipped');
+            setTimeout(() => { if (words.length) speak(words[0].sent); }, 450);
+        }
+
+        function updateStatsUI() {
+            document.getElementById('countAgain').innerText = stats.again;
+            document.getElementById('countHard').innerText = stats.hard;
+            document.getElementById('countGood').innerText = stats.good;
+            document.getElementById('countEasy').innerText = stats.easy;
+            document.getElementById('totalAnswered').innerText = stats.total;
+            document.getElementById('remainingCount').innerText = words.length;
+            const p = initialTotal > 0 ? ((initialTotal - words.length) / initialTotal) * 100 : 0;
+            document.getElementById('progressBar').style.width = p + '%';
+            document.getElementById('progressPercent').innerText = Math.round(p) + '%';
+        }
+
+        function shuffleArray(arr) { for (let i = arr.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [arr[i], arr[j]] = [arr[j], arr[i]]; } }
+        function speak(t) { if (!t) return; window.speechSynthesis.cancel(); const m = new SpeechSynthesisUtterance(t); m.lang = 'en-US'; window.speechSynthesis.speak(m); }
+        function speakText(e, type) { e.stopPropagation(); speak(type === 'front' ? words[0].word : words[0].sent); }
+        function saveProgress() { localStorage.setItem('flashcard_progress', JSON.stringify({ words, rawWords, initialTotal, stats })); }
+        function resetQuiz(e) { e.stopPropagation(); localStorage.removeItem('flashcard_progress'); location.reload(); }
+        function toggleHelp() { const m = document.getElementById('helpModal'); const isOpen = m.classList.contains('opacity-100'); m.classList.toggle('opacity-0', isOpen); m.classList.toggle('pointer-events-none', isOpen); m.classList.toggle('opacity-100', !isOpen); m.classList.toggle('pointer-events-auto', !isOpen); }
 
         document.addEventListener('keydown', (e) => {
             if (!words.length) return;
@@ -127,112 +306,6 @@
                 handleAction(types[e.key]);
             }
         });
-
-        document.getElementById('csvFileInput').addEventListener('change', function(e) {
-            const file = e.target.files[0]; if (!file) return;
-            const reader = new FileReader();
-            reader.onload = (ev) => { parseCSV(ev.target.result); };
-            reader.readAsText(file);
-        });
-
-        function parseCSV(text) {
-            rawWords = [];
-            const regex = /("([^"]|"")*"|[^,"\r\n]+)(?=[,\r\n]|$)|(?<=,|^)(?=[,\r\n]|$)/g;
-            let matches = text.match(regex) || [];
-            let row = [];
-            for (let i = 0; i < matches.length; i++) {
-                let val = matches[i].trim().replace(/^"|"$/g, '').replace(/""/g, '"');
-                row.push(val);
-                if (row.length === 2) { rawWords.push(processRow(row)); row = []; }
-            }
-            if (rawWords.length > 0) {
-                words = JSON.parse(JSON.stringify(rawWords));
-                shuffleArray(words);
-                initialTotal = words.length;
-                Object.keys(stats).forEach(k => stats[k] = 0);
-                document.getElementById('statsArea').classList.remove('hidden');
-                document.getElementById('cardContainer').classList.remove('hidden');
-                renderCard();
-                saveProgress();
-            }
-        }
-
-        function processRow(row) {
-            const word = row[0];
-            const details = row[1].split('\n').map(s => s.trim());
-            return { word, trans: details[0]||"", pos: details[1]||"", sent: details[2]||"", sentTrans: details[3]||"" };
-        }
-
-        function renderCard() {
-            if (!words.length) { alert("練習完成！"); localStorage.removeItem('flashcard_progress'); location.reload(); return; }
-            const data = words[0];
-            
-            // 填寫文字內容
-            document.getElementById('frontWord').innerText = data.word;
-            document.getElementById('backTranslation').innerText = data.trans;
-            document.getElementById('backPos').innerText = data.pos;
-            document.getElementById('backSentence').innerText = data.sent;
-            document.getElementById('backSentenceTrans').innerText = data.sentTrans;
-            
-            // 重要：預載圖片機制
-            const imgElement = document.getElementById('wordImage');
-            const loader = document.getElementById('imageLoading');
-            imgElement.classList.add('opacity-0'); // 先隱藏圖片
-            loader.classList.remove('hidden');    // 顯示 Loading
-            // 使用單字作為關鍵字，隨機抓取 400x300 圖片
-            imgElement.src = `https://loremflickr.com/400/300/${data.word}?random=${Date.now()}`;
-
-            updateStatsUI();
-            if (!isFlipped) speak(data.word);
-        }
-
-        function handleAction(type) {
-            const currentCard = words.shift();
-            stats.total++; stats[type]++;
-            if (type === 'again') words.splice(1, 0, currentCard);
-            else if (type === 'hard') words.splice(Math.floor(words.length / 2), 0, currentCard);
-            else if (type === 'good') words.push(currentCard);
-            isFlipped = false;
-            document.getElementById('cardInner').parentElement.classList.remove('flipped');
-            setTimeout(() => { renderCard(); saveProgress(); }, 300);
-        }
-
-        function updateStatsUI() {
-            document.getElementById('countAgain').innerText = stats.again;
-            document.getElementById('countHard').innerText = stats.hard;
-            document.getElementById('countGood').innerText = stats.good;
-            document.getElementById('countEasy').innerText = stats.easy;
-            document.getElementById('totalAnswered').innerText = stats.total;
-            document.getElementById('remainingCount').innerText = words.length;
-            const p = ((initialTotal - words.length) / initialTotal) * 100;
-            document.getElementById('progressBar').style.width = p + '%';
-            document.getElementById('progressPercent').innerText = Math.round(p) + '%';
-        }
-
-        function toggleFlip() { 
-            if (isFlipped) return; isFlipped = true;
-            document.getElementById('cardInner').parentElement.classList.add('flipped');
-            setTimeout(() => { if (words.length) speak(words[0].sent); }, 450);
-        }
-
-        function shuffleArray(arr) { for (let i = arr.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [arr[i], arr[j]] = [arr[j], arr[i]]; } }
-        function speak(t) { if (!t) return; window.speechSynthesis.cancel(); const m = new SpeechSynthesisUtterance(t); m.lang = 'en-US'; window.speechSynthesis.speak(m); }
-        function speakText(e, type) { e.stopPropagation(); speak(type === 'front' ? words[0].word : words[0].sent); }
-        function saveProgress() { localStorage.setItem('flashcard_progress', JSON.stringify({ words, rawWords, initialTotal, stats })); }
-        function resetQuiz(e) { e.stopPropagation(); if (confirm("確定要重置嗎？")) { localStorage.removeItem('flashcard_progress'); location.reload(); } }
-
-        window.onload = function() {
-            const saved = localStorage.getItem('flashcard_progress');
-            if (saved) {
-                const d = JSON.parse(saved);
-                if (d.words && d.words.length > 0 && confirm("接續上次進度？")) {
-                    words = d.words; rawWords = d.rawWords; initialTotal = d.initialTotal; stats = d.stats;
-                    document.getElementById('statsArea').classList.remove('hidden');
-                    document.getElementById('cardContainer').classList.remove('hidden');
-                    renderCard();
-                }
-            }
-        };
     </script>
 </body>
 </html>
