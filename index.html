@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>專業間隔記憶單字卡 App - 圖片強化版</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        .flip-card { perspective: 1000px; height: 580px; }
+        .flip-card-inner {
+            position: relative; width: 100%; height: 100%;
+            text-align: center; transition: transform 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+            transform-style: preserve-3d; cursor: pointer;
+        }
+        .flip-card.flipped .flip-card-inner { transform: rotateY(180deg); }
+        .flip-card-front, .flip-card-back {
+            position: absolute; width: 100%; height: 100%;
+            -webkit-backface-visibility: hidden; backface-visibility: hidden; 
+            border-radius: 1.5rem; padding: 1.5rem;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+            display: flex; flex-direction: column; overflow: hidden;
+        }
+        .flip-card-front { justify-content: center; align-items: center; background: white; border: 1px solid #e2e8f0; z-index: 2; transform: rotateY(0deg); }
+        .flip-card-back { transform: rotateY(180deg); background: #f8fafc; border: 1px solid #cbd5e1; text-align: left; z-index: 1; }
+        .btn-action { @apply flex flex-col items-center justify-center py-2 rounded-xl text-white font-bold text-xs transition-all active:scale-95 shadow-sm relative; }
+        .key-hint { @apply absolute -top-2 -right-1 bg-white text-slate-800 w-5 h-5 rounded-full flex items-center justify-center border border-slate-200 shadow-sm text-[10px] font-black; }
+    </style>
+</head>
+<body class="bg-slate-50 min-h-screen flex flex-col items-center py-8 px-4 font-sans text-slate-800">
+
+    <div id="helpModal" class="fixed inset-0 bg-slate-900/60 z-50 flex items-center justify-center opacity-0 pointer-events-none transition-opacity p-4">
+        <div class="bg-white w-full max-w-md rounded-3xl p-8 shadow-2xl">
+            <h3 class="text-2xl font-black text-blue-600 mb-6">操作說明</h3>
+            <div class="space-y-4 text-sm font-bold">
+                <div class="flex gap-2"><kbd class="bg-slate-100 px-2 rounded shadow font-black">Space</kbd> 快速翻頁 / <kbd class="bg-slate-100 px-2 rounded shadow font-black">Enter</kbd> 快速朗讀</div>
+                <div class="p-3 bg-red-50 rounded-xl border border-red-100 text-red-700">按數字鍵1 - Again: 移到第 2 個位置</div>
+                <div class="p-3 bg-orange-50 rounded-xl border border-orange-100 text-orange-700">按數字鍵2 - Hard: 插入到清單中間</div>
+                <div class="p-3 bg-blue-50 rounded-xl border border-blue-100 text-blue-700">按數字鍵3 - Good: 移到清單最後面</div>
+                <div class="p-3 bg-green-50 rounded-xl border border-green-100 text-green-700">按數字鍵4 - Easy: 直接移除卡片</div>
+            </div>
+            <button onclick="toggleHelp()" class="w-full mt-8 py-3 bg-slate-800 text-white rounded-xl font-black uppercase">開始練習</button>
+        </div>
+    </div>
+
+    <div class="w-full max-w-md flex gap-2 mb-6">
+        <label class="flex-grow flex items-center justify-center h-20 border-2 border-dashed border-blue-400 rounded-xl cursor-pointer bg-white hover:bg-blue-50 transition-all shadow-sm">
+            <div class="flex items-center space-x-3 text-blue-600 font-black text-xl">
+                <i class="fa-solid fa-file-circle-plus"></i><span>匯入 CSV</span>
+            </div>
+            <input id="csvFileInput" type="file" accept=".csv" class="hidden" />
+        </label>
+        <button onclick="toggleHelp()" class="w-20 h-20 bg-white border-2 border-slate-200 rounded-xl text-slate-500 hover:bg-slate-50 hover:text-blue-500 transition-all flex items-center justify-center shadow-sm">
+            <i class="fa-solid fa-screwdriver-wrench text-4xl"></i>
+        </button>
+    </div>
+
+    <div id="statsArea" class="w-full max-w-md mb-6 hidden">
+        <div class="grid grid-cols-5 gap-1.5 mb-4 text-center">
+            <div class="bg-white border border-red-200 p-2 rounded-lg text-red-600"><span class="text-[10px] font-black uppercase tracking-tighter">Again</span><br><span id="countAgain" class="text-lg font-black">0</span></div>
+            <div class="bg-white border border-orange-200 p-2 rounded-lg text-orange-600"><span class="text-[10px] font-black uppercase tracking-tighter">Hard</span><br><span id="countHard" class="text-lg font-black">0</span></div>
+            <div class="bg-white border border-blue-200 p-2 rounded-lg text-blue-600"><span class="text-[10px] font-black uppercase tracking-tighter">Good</span><br><span id="countGood" class="text-lg font-black">0</span></div>
+            <div class="bg-white border border-green-200 p-2 rounded-lg text-green-600"><span class="text-[10px] font-black uppercase tracking-tighter">Easy</span><br><span id="countEasy" class="text-lg font-black">0</span></div>
+            <div class="bg-slate-100 border border-slate-300 p-2 rounded-lg text-slate-700"><span class="text-[10px] font-black uppercase tracking-tighter">總回答</span><br><span id="totalAnswered" class="text-lg font-black">0</span></div>
+        </div>
+        <div class="flex justify-between items-end mb-2 font-black text-sm uppercase">
+            <span>剩餘: <span id="remainingCount" class="text-blue-600">0</span></span>
+            <span id="progressPercent" class="text-blue-600 text-lg">0%</span>
+        </div>
+        <div class="w-full bg-gray-200 rounded-full h-3 overflow-hidden shadow-inner"><div id="progressBar" class="bg-blue-500 h-3 w-0 transition-all duration-500"></div></div>
+    </div>
+
+    <div id="cardContainer" class="flip-card w-full max-w-md hidden">
+        <div class="flip-card-inner" id="cardInner" onclick="toggleFlip()">
+            <div class="flip-card-front">
+                <div class="flex items-center gap-4">
+                    <h2 id="frontWord" class="text-5xl font-black text-slate-800"></h2>
+                    <button onclick="speakText(event, 'front')" class="p-3 bg-slate-50 hover:bg-blue-50 rounded-full text-blue-500"><i class="fa-solid fa-volume-high text-xl"></i></button>
+                </div>
+                <button onclick="resetQuiz(event)" class="absolute bottom-10 flex items-center gap-2 px-6 py-3 border-2 border-red-200 text-red-500 bg-red-50 hover:bg-red-100 rounded-full text-sm font-black uppercase shadow-sm"><i class="fa-solid fa-trash-can"></i> 清除紀錄並重新開始</button>
+            </div>
+            <div class="flip-card-back">
+                <div class="h-full flex flex-col">
+                    <div class="w-full h-40 bg-slate-200 rounded-xl mb-4 overflow-hidden shadow-inner relative">
+                        <div id="imageLoading" class="absolute inset-0 flex items-center justify-center text-slate-400 font-bold animate-pulse">Loading Image...</div>
+                        <img id="wordImage" src="" alt="Word Visual" class="w-full h-full object-cover transition-opacity duration-500 opacity-0" onload="this.classList.remove('opacity-0'); document.getElementById('imageLoading').classList.add('hidden')">
+                    </div>
+                    
+                    <div class="flex-grow overflow-y-auto pr-1">
+                        <h3 id="backTranslation" class="text-3xl font-black text-slate-900 mb-1"></h3>
+                        <span id="backPos" class="inline-block px-2 py-0.5 bg-blue-100 text-blue-700 font-bold italic text-xs rounded mb-4"></span>
+                        <div class="border-t border-slate-200 my-4 shadow-sm"></div>
+                        <div class="flex items-start gap-3">
+                            <button onclick="speakText(event, 'back')" class="shrink-0 mt-1 p-2 bg-blue-50 rounded-full text-blue-500 hover:bg-blue-100 transition-colors"><i class="fa-solid fa-volume-high text-base"></i></button>
+                            <div><p id="backSentence" class="text-lg font-semibold text-slate-700 leading-tight mb-2"></p><p id="backSentenceTrans" class="text-slate-500 text-sm font-medium"></p></div>
+                        </div>
+                    </div>
+                    
+                    <div class="grid grid-cols-4 gap-2 mt-4 pt-4 border-t" onclick="event.stopPropagation()">
+                        <button onclick="handleAction('again')" class="btn-action bg-red-500"><span class="key-hint">1</span>Again</button>
+                        <button onclick="handleAction('hard')" class="btn-action bg-orange-500"><span class="key-hint">2</span>Hard</button>
+                        <button onclick="handleAction('good')" class="btn-action bg-blue-500"><span class="key-hint">3</span>Good</button>
+                        <button onclick="handleAction('easy')" class="btn-action bg-green-600"><span class="key-hint">4</span>Easy</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let words = [], rawWords = [], initialTotal = 0, isFlipped = false;
+        let stats = { again: 0, hard: 0, good: 0, easy: 0, total: 0 };
+
+        function toggleHelp() {
+            const m = document.getElementById('helpModal');
+            const isOpen = m.classList.contains('opacity-100');
+            m.classList.toggle('opacity-0', isOpen); m.classList.toggle('pointer-events-none', isOpen);
+            m.classList.toggle('opacity-100', !isOpen); m.classList.toggle('pointer-events-auto', !isOpen);
+        }
+
+        document.addEventListener('keydown', (e) => {
+            if (!words.length) return;
+            if (e.code === 'Space') { e.preventDefault(); if (!isFlipped) toggleFlip(); }
+            else if (e.key === 'Enter') { e.preventDefault(); speak(isFlipped ? words[0].sent : words[0].word); }
+            else if (isFlipped && ['1','2','3','4'].includes(e.key)) {
+                const types = { '1': 'again', '2': 'hard', '3': 'good', '4': 'easy' };
+                handleAction(types[e.key]);
+            }
+        });
+
+        document.getElementById('csvFileInput').addEventListener('change', function(e) {
+            const file = e.target.files[0]; if (!file) return;
+            const reader = new FileReader();
+            reader.onload = (ev) => { parseCSV(ev.target.result); };
+            reader.readAsText(file);
+        });
+
+        function parseCSV(text) {
+            rawWords = [];
+            const regex = /("([^"]|"")*"|[^,"\r\n]+)(?=[,\r\n]|$)|(?<=,|^)(?=[,\r\n]|$)/g;
+            let matches = text.match(regex) || [];
+            let row = [];
+            for (let i = 0; i < matches.length; i++) {
+                let val = matches[i].trim().replace(/^"|"$/g, '').replace(/""/g, '"');
+                row.push(val);
+                if (row.length === 2) { rawWords.push(processRow(row)); row = []; }
+            }
+            if (rawWords.length > 0) {
+                words = JSON.parse(JSON.stringify(rawWords));
+                shuffleArray(words);
+                initialTotal = words.length;
+                Object.keys(stats).forEach(k => stats[k] = 0);
+                document.getElementById('statsArea').classList.remove('hidden');
+                document.getElementById('cardContainer').classList.remove('hidden');
+                renderCard();
+                saveProgress();
+            }
+        }
+
+        function processRow(row) {
+            const word = row[0];
+            const details = row[1].split('\n').map(s => s.trim());
+            return { word, trans: details[0]||"", pos: details[1]||"", sent: details[2]||"", sentTrans: details[3]||"" };
+        }
+
+        function renderCard() {
+            if (!words.length) { alert("練習完成！"); localStorage.removeItem('flashcard_progress'); location.reload(); return; }
+            const data = words[0];
+            
+            // 填寫文字內容
+            document.getElementById('frontWord').innerText = data.word;
+            document.getElementById('backTranslation').innerText = data.trans;
+            document.getElementById('backPos').innerText = data.pos;
+            document.getElementById('backSentence').innerText = data.sent;
+            document.getElementById('backSentenceTrans').innerText = data.sentTrans;
+            
+            // 重要：預載圖片機制
+            const imgElement = document.getElementById('wordImage');
+            const loader = document.getElementById('imageLoading');
+            imgElement.classList.add('opacity-0'); // 先隱藏圖片
+            loader.classList.remove('hidden');    // 顯示 Loading
+            // 使用單字作為關鍵字，隨機抓取 400x300 圖片
+            imgElement.src = `https://loremflickr.com/400/300/${data.word}?random=${Date.now()}`;
+
+            updateStatsUI();
+            if (!isFlipped) speak(data.word);
+        }
+
+        function handleAction(type) {
+            const currentCard = words.shift();
+            stats.total++; stats[type]++;
+            if (type === 'again') words.splice(1, 0, currentCard);
+            else if (type === 'hard') words.splice(Math.floor(words.length / 2), 0, currentCard);
+            else if (type === 'good') words.push(currentCard);
+            isFlipped = false;
+            document.getElementById('cardInner').parentElement.classList.remove('flipped');
+            setTimeout(() => { renderCard(); saveProgress(); }, 300);
+        }
+
+        function updateStatsUI() {
+            document.getElementById('countAgain').innerText = stats.again;
+            document.getElementById('countHard').innerText = stats.hard;
+            document.getElementById('countGood').innerText = stats.good;
+            document.getElementById('countEasy').innerText = stats.easy;
+            document.getElementById('totalAnswered').innerText = stats.total;
+            document.getElementById('remainingCount').innerText = words.length;
+            const p = ((initialTotal - words.length) / initialTotal) * 100;
+            document.getElementById('progressBar').style.width = p + '%';
+            document.getElementById('progressPercent').innerText = Math.round(p) + '%';
+        }
+
+        function toggleFlip() { 
+            if (isFlipped) return; isFlipped = true;
+            document.getElementById('cardInner').parentElement.classList.add('flipped');
+            setTimeout(() => { if (words.length) speak(words[0].sent); }, 450);
+        }
+
+        function shuffleArray(arr) { for (let i = arr.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [arr[i], arr[j]] = [arr[j], arr[i]]; } }
+        function speak(t) { if (!t) return; window.speechSynthesis.cancel(); const m = new SpeechSynthesisUtterance(t); m.lang = 'en-US'; window.speechSynthesis.speak(m); }
+        function speakText(e, type) { e.stopPropagation(); speak(type === 'front' ? words[0].word : words[0].sent); }
+        function saveProgress() { localStorage.setItem('flashcard_progress', JSON.stringify({ words, rawWords, initialTotal, stats })); }
+        function resetQuiz(e) { e.stopPropagation(); if (confirm("確定要重置嗎？")) { localStorage.removeItem('flashcard_progress'); location.reload(); } }
+
+        window.onload = function() {
+            const saved = localStorage.getItem('flashcard_progress');
+            if (saved) {
+                const d = JSON.parse(saved);
+                if (d.words && d.words.length > 0 && confirm("接續上次進度？")) {
+                    words = d.words; rawWords = d.rawWords; initialTotal = d.initialTotal; stats = d.stats;
+                    document.getElementById('statsArea').classList.remove('hidden');
+                    document.getElementById('cardContainer').classList.remove('hidden');
+                    renderCard();
+                }
+            }
+        };
+    </script>
+</body>
+</html>
