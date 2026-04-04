@@ -3,11 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AI 單字學習卡 - 自動讀取 123.csv 版</title>
+    <title>AI 單字學習卡 - 專業自訂版</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
-        .flip-card { perspective: 1000px; height: 580px; }
+        .flip-card { perspective: 1000px; height: 600px; }
         .flip-card-inner {
             position: relative; width: 100%; height: 100%;
             text-align: center; transition: transform 0.6s cubic-bezier(0.4, 0, 0.2, 1);
@@ -21,14 +21,15 @@
             box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
             display: flex; flex-direction: column;
         }
-        /* 正面：藍天白雲綠地 */
+        /* 正面底圖 */
         .flip-card-front { 
             background-image: url('https://images.unsplash.com/photo-1500382017468-9049fed747ef?q=80&w=1200&auto=format&fit=crop');
             background-size: cover; background-position: center;
             z-index: 2; transform: rotateY(0deg); 
-            justify-content: center; align-items: center;
+            justify-content: space-between; /* 讓內容撐開，利於底部排版 */
+            padding-bottom: 2rem;
         }
-        /* 背面：海邊風景 */
+        /* 背面底圖 */
         .flip-card-back { 
             transform: rotateY(180deg); 
             background-image: url('https://images.unsplash.com/photo-1507525428034-b723cf961d3e?q=80&w=1200&auto=format&fit=crop');
@@ -46,17 +47,6 @@
     </style>
 </head>
 <body class="bg-slate-100 min-h-screen flex flex-col items-center py-8 px-4 font-sans text-slate-800">
-
-    <div class="w-full max-w-md flex gap-2 mb-6">
-        <div class="flex-grow flex items-center justify-center h-20 border-2 border-dashed border-blue-400 rounded-xl bg-white shadow-sm">
-            <div class="flex items-center space-x-3 text-blue-600 font-black text-xl">
-                <i class="fa-solid fa-server"></i><span id="loadStatus">正在讀取 123.csv...</span>
-            </div>
-        </div>
-        <button onclick="toggleHelp()" class="w-20 h-20 bg-white border-2 border-slate-200 rounded-xl text-slate-500 hover:bg-slate-50 hover:text-blue-500 transition-all flex items-center justify-center shadow-sm">
-            <i class="fa-solid fa-screwdriver-wrench text-4xl"></i>
-        </button>
-    </div>
 
     <div id="statsArea" class="w-full max-w-md mb-6 hidden">
         <div class="grid grid-cols-5 gap-1.5 mb-4 text-center">
@@ -76,15 +66,30 @@
     <div id="cardContainer" class="flip-card w-full max-w-md hidden">
         <div class="flip-card-inner" id="cardInner" onclick="toggleFlip()">
             <div class="flip-card-front">
-                <div class="relative flex flex-col items-start">
-                    <button onclick="speakText(event, 'front')" class="mb-4 p-3 bg-blue-600 hover:bg-blue-700 rounded-full text-white transition-all shadow-lg active:scale-90 z-10">
-                        <i class="fa-solid fa-volume-high text-xl"></i>
+                <div></div>
+
+                <div class="relative flex flex-col items-center">
+                    <div class="flex flex-col items-start">
+                        <button onclick="speakText(event, 'front')" class="mb-4 p-3 bg-blue-600 hover:bg-blue-700 rounded-full text-white transition-all shadow-lg active:scale-90 z-10">
+                            <i class="fa-solid fa-volume-high text-xl"></i>
+                        </button>
+                        <div class="bg-white/80 backdrop-blur-md px-10 py-6 rounded-[2rem] shadow-2xl border border-white/50">
+                            <h2 id="frontWord" class="text-6xl font-black text-slate-900 tracking-tight">載入中...</h2>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="w-full px-6 flex justify-center items-end relative" style="height: 80px;">
+                    <button onclick="toggleHelp(event)" class="w-20 h-20 bg-white border-2 border-slate-200 rounded-xl text-slate-500 hover:bg-slate-50 hover:text-blue-500 transition-all flex items-center justify-center shadow-lg active:scale-95">
+                        <i class="fa-solid fa-screwdriver-wrench text-4xl"></i>
                     </button>
-                    <div class="bg-white/80 backdrop-blur-md px-10 py-6 rounded-[2rem] shadow-2xl border border-white/50">
-                        <h2 id="frontWord" class="text-6xl font-black text-slate-900 tracking-tight"></h2>
+                    
+                    <div class="absolute right-6 bottom-0">
+                        <img src="簡俊銘.png" alt="姓名圖" class="w-20 h-20 object-contain rounded-xl shadow-lg border-2 border-white/50 bg-white/20" onerror="this.style.display='none'">
                     </div>
                 </div>
             </div>
+
             <div class="flip-card-back">
                 <div class="glass-overlay text-white">
                     <div class="flex-grow overflow-y-auto pr-2">
@@ -117,12 +122,12 @@
             <h3 class="text-2xl font-black text-blue-600 mb-6">操作說明</h3>
             <div class="space-y-4 text-sm font-bold">
                 <div class="flex gap-2"><kbd class="bg-slate-100 px-2 rounded shadow font-black">Space</kbd> 快速翻頁 / <kbd class="bg-slate-100 px-2 rounded shadow font-black">Enter</kbd> 快速朗讀</div>
-                <div class="p-3 bg-red-50 rounded-xl border border-red-100 text-red-700">按數字鍵1 - Again: 第 2 個位置</div>
-                <div class="p-3 bg-orange-50 rounded-xl border border-orange-100 text-orange-700">按數字鍵2 - Hard: 插入中間</div>
-                <div class="p-3 bg-blue-50 rounded-xl border border-blue-100 text-blue-700">按數字鍵3 - Good: 移至最後</div>
-                <div class="p-3 bg-green-50 rounded-xl border border-green-100 text-green-700">按數字鍵4 - Easy: 直接移除</div>
+                <div class="p-3 bg-red-50 rounded-xl border border-red-100 text-red-700">按數字鍵1 - Again</div>
+                <div class="p-3 bg-orange-50 rounded-xl border border-orange-100 text-orange-700">按數字鍵2 - Hard</div>
+                <div class="p-3 bg-blue-50 rounded-xl border border-blue-100 text-blue-700">按數字鍵3 - Good</div>
+                <div class="p-3 bg-green-50 rounded-xl border border-green-100 text-green-700">按數字鍵4 - Easy</div>
             </div>
-            <button onclick="toggleHelp()" class="w-full mt-8 py-3 bg-slate-800 text-white rounded-xl font-black uppercase tracking-widest">開始練習</button>
+            <button onclick="toggleHelp(event)" class="w-full mt-8 py-3 bg-slate-800 text-white rounded-xl font-black uppercase tracking-widest">關閉說明</button>
         </div>
     </div>
 
@@ -131,7 +136,19 @@
         let stats = { again: 0, hard: 0, good: 0, easy: 0, total: 0 };
 
         window.onload = function() {
-            // 1. 檢查是否有儲存的進度
+            // 自動嘗試讀取伺服器上的 123.csv
+            fetch('123.csv')
+                .then(res => {
+                    if (!res.ok) throw new Error('CORS error or file not found');
+                    return res.text();
+                })
+                .then(text => parseCSV(text))
+                .catch(err => {
+                    console.error("無法自動載入 CSV，請手動上傳");
+                    // 此處可增加手動上傳邏輯，但根據您的需求目前是自動讀取
+                });
+
+            // 讀取紀錄
             const saved = localStorage.getItem('flashcard_progress');
             if (saved) {
                 try {
@@ -139,29 +156,11 @@
                     if (d.words && d.words.length > 0 && confirm("偵測到上次進度，是否接續？")) {
                         words = d.words; rawWords = d.rawWords; initialTotal = d.initialTotal; stats = d.stats;
                         startApp();
-                        document.getElementById('loadStatus').innerText = "已恢復 123.csv 進度";
-                        return;
                     }
                 } catch(e) { localStorage.removeItem('flashcard_progress'); }
             }
-
-            // 2. 自動讀取伺服器上的 123.csv
-            fetch('123.csv')
-                .then(res => {
-                    if (!res.ok) throw new Error('找不到 123.csv，請確認檔案位置');
-                    return res.text();
-                })
-                .then(text => {
-                    document.getElementById('loadStatus').innerText = "123.csv 載入成功";
-                    parseCSV(text);
-                })
-                .catch(err => {
-                    document.getElementById('loadStatus').innerHTML = `<span class="text-red-500 underline">讀取失敗: ${err.message}</span>`;
-                    console.error(err);
-                });
         };
 
-        // CSV 解析狀態機 (處理引號與換行)
         function parseCSV(text) {
             rawWords = [];
             let row = [], field = '', inQuotes = false;
@@ -184,23 +183,19 @@
             }
             if (field || row.length > 0) { row.push(field); if (row.length >= 2) processRowData(row); }
             if (rawWords.length > 0) {
-                words = JSON.parse(JSON.stringify(rawWords));
-                shuffleArray(words);
-                initialTotal = words.length;
-                startApp();
+                if(words.length === 0) { // 避免覆蓋進度
+                    words = JSON.parse(JSON.stringify(rawWords));
+                    shuffleArray(words);
+                    initialTotal = words.length;
+                    startApp();
+                }
             }
         }
 
         function processRowData(row) {
             const word = row[0].trim();
             const details = row[1].split('\n').map(s => s.trim());
-            rawWords.push({ 
-                word, 
-                trans: details[0]||"無翻譯", 
-                pos: details[1]||"", 
-                sent: details[2]||"", 
-                sentTrans: details[3]||"" 
-            });
+            rawWords.push({ word, trans: details[0]||"無", pos: details[1]||"", sent: details[2]||"", sentTrans: details[3]||"" });
         }
 
         function startApp() {
@@ -210,12 +205,7 @@
         }
 
         function renderCard() {
-            if (!words.length) { 
-                alert("本份 CSV 單字已全數完成！"); 
-                localStorage.removeItem('flashcard_progress');
-                location.reload();
-                return; 
-            }
+            if (!words.length) { alert("練習完成！"); localStorage.removeItem('flashcard_progress'); location.reload(); return; }
             const data = words[0];
             document.getElementById('frontWord').innerText = data.word;
             document.getElementById('backTranslation').innerText = data.trans;
@@ -234,9 +224,24 @@
             if (type === 'again') words.splice(1, 0, currentCard);
             else if (type === 'hard') words.splice(Math.floor(words.length / 2), 0, currentCard);
             else if (type === 'good') words.push(currentCard);
+            
             isFlipped = false;
             document.getElementById('cardInner').parentElement.classList.remove('flipped');
             setTimeout(() => { renderCard(); saveProgress(); }, 300);
+        }
+
+        function toggleFlip() { 
+            if (isFlipped) return; isFlipped = true;
+            document.getElementById('cardInner').parentElement.classList.add('flipped');
+            setTimeout(() => { if (words.length) speak(words[0].sent); }, 450);
+        }
+
+        function toggleHelp(e) {
+            e.stopPropagation();
+            const m = document.getElementById('helpModal');
+            const isOpen = m.classList.contains('opacity-100');
+            m.classList.toggle('opacity-0', isOpen); m.classList.toggle('pointer-events-none', isOpen);
+            m.classList.toggle('opacity-100', !isOpen); m.classList.toggle('pointer-events-auto', !isOpen);
         }
 
         function updateStatsUI() {
@@ -251,17 +256,10 @@
             document.getElementById('progressPercent').innerText = Math.round(p) + '%';
         }
 
-        function toggleFlip() { 
-            if (isFlipped) return; isFlipped = true;
-            document.getElementById('cardInner').parentElement.classList.add('flipped');
-            setTimeout(() => { if (words.length) speak(words[0].sent); }, 450);
-        }
-
         function shuffleArray(arr) { for (let i = arr.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [arr[i], arr[j]] = [arr[j], arr[i]]; } }
         function speak(t) { if (!t) return; window.speechSynthesis.cancel(); const m = new SpeechSynthesisUtterance(t); m.lang = 'en-US'; window.speechSynthesis.speak(m); }
         function speakText(e, type) { e.stopPropagation(); speak(type === 'front' ? words[0].word : words[0].sent); }
         function saveProgress() { localStorage.setItem('flashcard_progress', JSON.stringify({ words, rawWords, initialTotal, stats })); }
-        function toggleHelp() { const m = document.getElementById('helpModal'); const isOpen = m.classList.contains('opacity-100'); m.classList.toggle('opacity-0', isOpen); m.classList.toggle('pointer-events-none', isOpen); m.classList.toggle('opacity-100', !isOpen); m.classList.toggle('pointer-events-auto', !isOpen); }
 
         document.addEventListener('keydown', (e) => {
             if (!words.length) return;
