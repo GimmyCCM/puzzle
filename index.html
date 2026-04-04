@@ -34,6 +34,8 @@
             background-image: url('https://images.unsplash.com/photo-1507525428034-b723cf961d3e?q=80&w=1200&auto=format&fit=crop');
             background-size: cover; background-position: center;
             text-align: left; z-index: 1;
+            /* 修正背面，讓內容置中 */
+            justify-content: center; align-items: center;
         }
         .glass-overlay {
             background: rgba(0, 0, 0, 0.55); 
@@ -44,32 +46,36 @@
         .btn-action { @apply flex flex-col items-center justify-center py-2 rounded-xl text-white font-bold text-xs transition-all active:scale-95 shadow-sm relative; }
         .key-hint { @apply absolute -top-2 -right-1 bg-white text-slate-800 w-5 h-5 rounded-full flex items-center justify-center border border-slate-200 shadow-sm text-[10px] font-black; }
         
-        /* 確保統計方框不重疊的固定尺寸 */
-        .stat-box-fixed { width: 19%; height: 55px; @apply bg-white border rounded-xl flex flex-col items-center justify-center shadow-sm; }
+        /* 確保統計方框不重疊的固定尺寸，並加上淡淡的外框 */
+        .stat-box-fixed { 
+            width: 19%; height: 55px; 
+            border: 1px solid #e2e8f0; /* text-slate-200 */
+            @apply bg-white rounded-xl flex flex-col items-center justify-center shadow-sm; 
+        }
     </style>
 </head>
 <body class="bg-slate-100 min-h-screen flex flex-col items-center py-6 px-4 font-sans text-slate-800">
 
     <div id="statsArea" class="w-full max-w-md mb-6 hidden">
         <div class="flex justify-between w-full mb-4">
-            <div class="stat-box-fixed border-red-200 text-red-600">
-                <span class="text-[9px] font-black uppercase">Again</span>
+            <div class="stat-box-fixed text-red-600">
+                <span class="text-[9px] font-black uppercase tracking-tighter">Again</span>
                 <span id="countAgain" class="text-lg font-black leading-none">0</span>
             </div>
-            <div class="stat-box-fixed border-orange-200 text-orange-600">
-                <span class="text-[9px] font-black uppercase">Hard</span>
+            <div class="stat-box-fixed text-orange-600">
+                <span class="text-[9px] font-black uppercase tracking-tighter">Hard</span>
                 <span id="countHard" class="text-lg font-black leading-none">0</span>
             </div>
-            <div class="stat-box-fixed border-blue-200 text-blue-600">
-                <span class="text-[9px] font-black uppercase">Good</span>
+            <div class="stat-box-fixed text-blue-600">
+                <span class="text-[9px] font-black uppercase tracking-tighter">Good</span>
                 <span id="countGood" class="text-lg font-black leading-none">0</span>
             </div>
-            <div class="stat-box-fixed border-green-200 text-green-600">
-                <span class="text-[9px] font-black uppercase">Easy</span>
+            <div class="stat-box-fixed text-green-600">
+                <span class="text-[9px] font-black uppercase tracking-tighter">Easy</span>
                 <span id="countEasy" class="text-lg font-black leading-none">0</span>
             </div>
-            <div class="stat-box-fixed border-slate-300 bg-slate-50 text-slate-700">
-                <span class="text-[9px] font-black uppercase">總回答</span>
+            <div class="stat-box-fixed bg-slate-50 text-slate-700">
+                <span class="text-[9px] font-black uppercase tracking-tighter">總回答</span>
                 <span id="totalAnswered" class="text-lg font-black leading-none">0</span>
             </div>
         </div>
@@ -94,38 +100,41 @@
         <div class="flip-card-inner" id="cardInner" onclick="toggleFlip()">
             
             <div class="flip-card-front relative">
-                <div class="flex flex-col items-start">
-                    <button onclick="speakText(event, 'front')" class="mb-4 p-3 bg-blue-600 hover:bg-blue-700 rounded-full text-white transition-all shadow-lg active:scale-90 z-10">
-                        <i class="fa-solid fa-volume-high text-xl"></i>
-                    </button>
-                    <div class="bg-white/80 backdrop-blur-md px-10 py-6 rounded-[2rem] shadow-2xl border border-white/50">
-                        <h2 id="frontWord" class="text-6xl font-black text-slate-900 tracking-tight">載入中...</h2>
+                <div class="relative flex flex-col items-center">
+                    <div class="flex flex-col items-start">
+                        <button onclick="speakText(event, 'front')" class="mb-4 p-3 bg-blue-600 hover:bg-blue-700 rounded-full text-white transition-all shadow-lg active:scale-90 z-10">
+                            <i class="fa-solid fa-volume-high text-xl"></i>
+                        </button>
+                        <div class="bg-white/80 backdrop-blur-md px-10 py-6 rounded-[2rem] shadow-2xl border border-white/50 inline-block">
+                            <h2 id="frontWord" class="text-6xl font-black text-slate-900 tracking-tight">載入中...</h2>
+                        </div>
                     </div>
                 </div>
 
-                <div class="absolute right-4 bottom-4 w-12 h-12">
-                    <img src="name.png" alt="name" class="w-full h-full object-contain drop-shadow-md" 
-                         onerror="this.style.display='none'; console.warn('找不到 name.png');">
+                <div class="absolute right-4 bottom-4 w-12 pointer-events-none">
+                    <img src="name.png" alt="name" class="w-full h-auto object-contain drop-shadow-md" 
+                         onerror="this.style.display='none'; console.warn('找不到 name.png，請確認檔案是否存在於同目錄下。');">
                 </div>
             </div>
 
             <div class="flip-card-back">
-                <div class="glass-overlay text-white">
-                    <div class="flex-grow overflow-y-auto pr-2">
-                        <h3 id="backTranslation" class="text-4xl font-black mb-2 drop-shadow-md"></h3>
-                        <span id="backPos" class="inline-block px-3 py-1 bg-yellow-400 text-slate-900 font-black italic text-sm rounded-lg mb-6 shadow-md"></span>
-                        <div class="border-t border-white/30 my-6"></div>
-                        <div class="flex flex-col items-start gap-4">
-                            <button onclick="speakText(event, 'back')" class="p-3 bg-white text-blue-700 rounded-full shadow-xl transition-all active:scale-90">
-                                <i class="fa-solid fa-volume-high text-lg"></i>
-                            </button>
-                            <div class="drop-shadow-sm space-y-4">
-                                <p id="backSentence" class="text-3xl font-bold leading-snug"></p>
-                                <p id="backSentenceTrans" class="text-2xl font-medium text-white/95"></p>
-                            </div>
-                        </div>
+                <div class="bg-white/80 backdrop-blur-md px-8 py-6 rounded-[2.5rem] shadow-2xl border border-white/50 w-[90%] flex flex-col items-start gap-4 text-slate-900">
+                    <div class="w-full flex justify-between items-start gap-3">
+                        <h3 id="backTranslation" class="text-4xl font-black mb-1 drop-shadow-sm"></h3>
+                        <button onclick="speakText(event, 'back')" class="p-3 bg-blue-600 hover:bg-blue-700 rounded-full text-white shadow-xl transition-all active:scale-90">
+                            <i class="fa-solid fa-volume-high text-lg"></i>
+                        </button>
                     </div>
-                    <div class="grid grid-cols-4 gap-2 mt-4 pt-4 border-t border-white/20" onclick="event.stopPropagation()">
+                    <span id="backPos" class="inline-block px-3 py-1 bg-yellow-400 text-slate-900 font-black italic text-sm rounded-lg mb-2 shadow-sm"></span>
+                    
+                    <div class="w-full border-t border-slate-200 my-2"></div>
+                    
+                    <div class="w-full drop-shadow-sm space-y-3">
+                        <p id="backSentence" class="text-xl font-bold leading-tight mb-3"></p>
+                        <p id="backSentenceTrans" class="text-lg font-medium text-slate-700"></p>
+                    </div>
+
+                    <div class="grid grid-cols-4 gap-2 w-full mt-4 pt-4 border-t border-slate-200" onclick="event.stopPropagation()">
                         <button onclick="handleAction('again')" class="btn-action bg-red-600 hover:bg-red-700"><span class="key-hint">1</span>Again</button>
                         <button onclick="handleAction('hard')" class="btn-action bg-orange-500 hover:bg-orange-600"><span class="key-hint">2</span>Hard</button>
                         <button onclick="handleAction('good')" class="btn-action bg-blue-600 hover:bg-blue-700"><span class="key-hint">3</span>Good</button>
@@ -139,15 +148,15 @@
 
     <div id="helpModal" class="fixed inset-0 bg-slate-900/60 z-50 flex items-center justify-center opacity-0 pointer-events-none transition-opacity p-4">
         <div class="bg-white w-full max-w-md rounded-3xl p-8 shadow-2xl">
-            <h3 class="text-2xl font-black text-blue-600 mb-6">操作說明</h3>
-            <div class="space-y-4 text-sm font-bold text-left">
-                <div class="flex gap-2"><kbd class="bg-slate-100 px-2 rounded shadow font-black">Space</kbd> 翻頁 / <kbd class="bg-slate-100 px-2 rounded shadow font-black">Enter</kbd> 朗讀</div>
-                <div class="p-3 bg-red-50 rounded-xl border border-red-100 text-red-700 font-black">1 - Again</div>
-                <div class="p-3 bg-orange-50 rounded-xl border border-orange-100 text-orange-700 font-black">2 - Hard</div>
-                <div class="p-3 bg-blue-50 rounded-xl border border-blue-100 text-blue-700 font-black">3 - Good</div>
-                <div class="p-3 bg-green-50 rounded-xl border border-green-100 text-green-700 font-black">4 - Easy</div>
+            <h3 class="text-2xl font-black text-blue-600 mb-6 text-left">操作說明</h3>
+            <div class="space-y-4 text-sm font-bold text-left text-slate-800">
+                <div class="flex gap-2"><kbd class="bg-slate-100 px-2 rounded shadow font-black">Space</kbd> 快速翻頁 / <kbd class="bg-slate-100 px-2 rounded shadow font-black">Enter</kbd> 快速朗讀</div>
+                <div class="p-3 bg-red-50 rounded-xl border border-red-100 text-red-700 font-black">按數字鍵1 - Again</div>
+                <div class="p-3 bg-orange-50 rounded-xl border border-orange-100 text-orange-700 font-black">按數字鍵2 - Hard</div>
+                <div class="p-3 bg-blue-50 rounded-xl border border-blue-100 text-blue-700 font-black">按數字鍵3 - Good</div>
+                <div class="p-3 bg-green-50 rounded-xl border border-green-100 text-green-700 font-black">按數字鍵4 - Easy</div>
             </div>
-            <button onclick="toggleHelp(event)" class="w-full mt-8 py-3 bg-slate-800 text-white rounded-xl font-black uppercase tracking-widest">關閉</button>
+            <button onclick="toggleHelp(event)" class="w-full mt-8 py-3 bg-slate-800 text-white rounded-xl font-black uppercase tracking-widest active:scale-95">關閉</button>
         </div>
     </div>
 
@@ -156,16 +165,18 @@
         let stats = { again: 0, hard: 0, good: 0, easy: 0, total: 0 };
 
         window.onload = function() {
+            // 自動嘗試讀取伺服器上的 123.csv
             fetch('123.csv')
                 .then(res => res.ok ? res.text() : Promise.reject())
                 .then(text => parseCSV(text))
-                .catch(() => console.error("請在伺服器環境開啟並確保 123.csv 存在"));
+                .catch(() => console.error("CSV載入失敗，請確認是否為伺服器環境開啟，並確認檔案 123.csv 存在。"));
 
+            // 讀取進度
             const saved = localStorage.getItem('flashcard_progress');
             if (saved) {
                 try {
                     const d = JSON.parse(saved);
-                    if (d.words && d.words.length > 0 && confirm("接續上次進度？")) {
+                    if (d.words && d.words.length > 0 && confirm("偵測到上次進度，是否接續練習？")) {
                         words = d.words; rawWords = d.rawWords; initialTotal = d.initialTotal; stats = d.stats;
                         startApp();
                     }
@@ -173,6 +184,7 @@
             }
         };
 
+        // CSV 解析狀態機 (處理引號與換行)
         function parseCSV(text) {
             rawWords = [];
             let row = [], field = '', inQuotes = false;
@@ -194,6 +206,8 @@
                 }
             }
             if (field || row.length > 0) { row.push(field); if (row.length >= 2) processRowData(row); }
+            
+            // 避免覆蓋已載入的進度
             if (rawWords.length > 0 && words.length === 0) {
                 words = JSON.parse(JSON.stringify(rawWords));
                 shuffleArray(words);
@@ -205,7 +219,13 @@
         function processRowData(row) {
             const word = row[0].trim();
             const details = row[1].split('\n').map(s => s.trim());
-            rawWords.push({ word, trans: details[0]||"無", pos: details[1]||"", sent: details[2]||"", sentTrans: details[3]||"" });
+            rawWords.push({ 
+                word, 
+                trans: details[0]||"無翻譯", 
+                pos: details[1]||"", 
+                sent: details[2]||"", 
+                sentTrans: details[3]||"" 
+            });
         }
 
         function startApp() {
@@ -215,7 +235,12 @@
         }
 
         function renderCard() {
-            if (!words.length) { alert("練習完成！"); localStorage.removeItem('flashcard_progress'); location.reload(); return; }
+            if (!words.length) { 
+                alert("本 CSV 單字已完成練習！頁面即將重設。"); 
+                localStorage.removeItem('flashcard_progress');
+                location.reload();
+                return; 
+            }
             const data = words[0];
             document.getElementById('frontWord').innerText = data.word;
             document.getElementById('backTranslation').innerText = data.trans;
@@ -245,14 +270,6 @@
             setTimeout(() => { if (words.length) speak(words[0].sent); }, 450);
         }
 
-        function toggleHelp(e) {
-            e.stopPropagation();
-            const m = document.getElementById('helpModal');
-            const isOpen = m.classList.contains('opacity-100');
-            m.classList.toggle('opacity-0', isOpen); m.classList.toggle('pointer-events-none', isOpen);
-            m.classList.toggle('opacity-100', !isOpen); m.classList.toggle('pointer-events-auto', !isOpen);
-        }
-
         function updateStatsUI() {
             document.getElementById('countAgain').innerText = stats.again;
             document.getElementById('countHard').innerText = stats.hard;
@@ -269,6 +286,14 @@
         function speak(t) { if (!t) return; window.speechSynthesis.cancel(); const m = new SpeechSynthesisUtterance(t); m.lang = 'en-US'; window.speechSynthesis.speak(m); }
         function speakText(e, type) { e.stopPropagation(); speak(type === 'front' ? words[0].word : words[0].sent); }
         function saveProgress() { localStorage.setItem('flashcard_progress', JSON.stringify({ words, rawWords, initialTotal, stats })); }
+        
+        function toggleHelp(e) {
+            e.stopPropagation();
+            const m = document.getElementById('helpModal');
+            const isOpen = m.classList.contains('opacity-100');
+            m.classList.toggle('opacity-0', isOpen); m.classList.toggle('pointer-events-none', isOpen);
+            m.classList.toggle('opacity-100', !isOpen); m.classList.toggle('pointer-events-auto', !isOpen);
+        }
 
         document.addEventListener('keydown', (e) => {
             if (!words.length) return;
