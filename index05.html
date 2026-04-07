@@ -1,0 +1,327 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>計算機概論 - 單面學習字卡</title>
+    
+    <!-- 引入 MathJax 渲染 LaTeX 數學公式 -->
+    <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    
+    <style>
+        /* 全域設定與動態背景過渡 */
+        body {
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            font-family: "Helvetica Neue", Helvetica, "Microsoft JhengHei", sans-serif;
+            transition: background 0.8s ease;
+            overflow: hidden;
+            background-color: #f0f8ff;
+        }
+
+        /* 警告畫面樣式 */
+        #js-warning {
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background-color: #ffebee;
+            color: #c62828;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            padding: 40px;
+            font-size: 26px;
+            font-weight: bold;
+            z-index: 9999;
+            line-height: 1.6;
+        }
+
+        /* 模擬 iPad 螢幕比例與卡片質感 */
+        .card-container {
+            width: 90vw;
+            max-width: 800px;
+            height: 75vh;
+            max-height: 1024px;
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 24px;
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.15);
+            backdrop-filter: blur(10px);
+            display: none; /* 預設隱藏，等 JS 啟動後再顯示 */
+            flex-direction: column;
+            padding: 40px 50px;
+            box-sizing: border-box;
+            position: relative;
+        }
+
+        /* 頁碼標示 */
+        .page-indicator {
+            position: absolute;
+            top: 30px;
+            right: 40px;
+            font-size: 20px;
+            color: #888;
+            font-weight: bold;
+        }
+
+        /* 內容區塊 */
+        .content-area {
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+
+        /* 題目樣式 */
+        .question {
+            font-size: 30px;
+            font-weight: bold;
+            color: #333;
+            margin-bottom: 40px;
+            line-height: 1.6;
+        }
+
+        /* 選項清單樣式 */
+        .options {
+            list-style-type: none;
+            padding: 0;
+            margin: 0;
+        }
+
+        .options li {
+            font-size: 24px;
+            margin-bottom: 18px;
+            padding: 18px 25px;
+            background: #f8f9fa;
+            border-radius: 15px;
+            border: 2px solid transparent;
+            color: #555;
+            display: flex;
+            align-items: center;
+        }
+
+        /* 正確答案的特別標示 (紅色+醒目) */
+        .options li.correct {
+            background-color: #fff4f4;
+            border-color: #ff4d4f;
+            color: #d9363e;
+            font-weight: bold;
+            box-shadow: 0 4px 15px rgba(255, 77, 79, 0.15);
+        }
+
+        .correct-badge {
+            margin-left: auto;
+            background: #ff4d4f;
+            color: white;
+            font-size: 18px;
+            padding: 6px 16px;
+            border-radius: 20px;
+        }
+
+        /* 底部按鈕區塊 */
+        .footer {
+            text-align: center;
+            margin-top: 20px;
+        }
+
+        .next-btn {
+            padding: 20px 80px;
+            font-size: 26px;
+            font-weight: bold;
+            border: none;
+            border-radius: 40px;
+            background: #007aff;
+            color: white;
+            cursor: pointer;
+            box-shadow: 0 8px 20px rgba(0, 122, 255, 0.3);
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .next-btn:active {
+            transform: scale(0.95);
+            box-shadow: 0 4px 10px rgba(0, 122, 255, 0.2);
+        }
+
+        /* 結束畫面 */
+        .end-screen {
+            text-align: center;
+            font-size: 40px;
+            color: #007aff;
+            font-weight: bold;
+            line-height: 1.6;
+        }
+
+        .end-icon {
+            font-size: 90px;
+            margin-bottom: 30px;
+        }
+
+        #error-msg {
+            color: red;
+            font-weight: bold;
+            text-align: center;
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- 偵測是否被封鎖 JS 的警告畫面 -->
+    <div id="js-warning">
+        ⚠️ 系統警告：您的 App 封鎖了互動功能！<br><br>
+        如果您是在 iPad 的「檔案」App 或 LINE/Messenger 中直接點開，蘋果系統會強制封鎖程式的運作。<br><br>
+        💡 最快的方法：請直接在 AI 對話網頁右側點擊「Preview / 預覽」按鈕來使用！<br>
+        (或使用 Documents 等支援網頁瀏覽的 App 開啟此檔案)
+    </div>
+
+    <div class="card-container" id="main-app">
+        <!-- 錯誤防護顯示區 -->
+        <div id="error-msg" style="display: none;"></div>
+
+        <!-- 頁面內容動態生成區 -->
+        <div id="card-content" class="content-area">
+            <h2 style="text-align:center;">載入中...</h2>
+        </div>
+
+        <!-- 底部按鈕 -->
+        <div class="footer">
+            <button id="next-btn" class="next-btn" onclick="nextPage()" style="display:none;">下一題</button>
+        </div>
+    </div>
+
+<script>
+    // 第一步：如果 JS 成功啟動，立刻隱藏警告畫面，並顯示主卡片區塊
+    document.getElementById('js-warning').style.display = 'none';
+    document.getElementById('main-app').style.display = 'flex';
+
+    // 錯誤防護網：捕捉任何語法或執行錯誤並顯示在畫面上
+    window.onerror = function(msg, url, line) {
+        document.getElementById('error-msg').style.display = 'block';
+        document.getElementById('error-msg').innerHTML = "系統錯誤: " + msg + " (行數: " + line + ")<br>請確認您的裝置或瀏覽器版本。";
+        return false;
+    };
+
+    // 使用傳統 var 宣告，確保舊版 iPad 絕對相容
+    var questions = [
+        { q: "(1) \\( \\sqrt{23} = \\)", options: ["4.795831523", "4.123105626", "3.982145561", "5.129384756"], ans: 0 },
+        { q: "(2) \\( \\sqrt[3]{345} = \\)", options: ["6.162240148", "7.013578942", "6.910423055", "8.123456789"], ans: 2 },
+        { q: "(3) \\( \\sqrt[7]{4^6} = \\)", options: ["3.281341401", "2.191799867", "3.512398471", "4.123456789"], ans: 0 },
+        { q: "(4) \\( 2345^2 = \\)", options: ["1522756", "5499025", "4123567", "5291234"], ans: 1 },
+        { q: "(5) \\( 8^{25} = \\)", options: ["\\( 3.788186923 \\times 10^{25} \\)", "\\( 3.777893186 \\times 10^{22} \\)", "\\( 1.125899907 \\times 10^{15} \\)", "\\( 4.123456789 \\times 10^{20} \\)"], ans: 1 },
+        { q: "(6) \\( 10^{12.5} = \\)", options: ["\\( 6.309573445 \\times 10^{11} \\)", "\\( 3.162277660 \\times 10^{12} \\)", "\\( 4.123456789 \\times 10^{12} \\)", "\\( 1.584893192 \\times 10^{13} \\)"], ans: 1 },
+        { q: "(7) \\( \\log 123456 = \\)", options: ["5.815790859", "5.091512202", "6.123456789", "4.981234567"], ans: 1 },
+        { q: "(8) \\( e^{4.2} = \\)", options: ["40.44730436", "66.68633104", "55.12345678", "20.12345678"], ans: 1 },
+        { q: "(9) \\( \\ln 8 = \\)", options: ["1.609437912", "2.079441542", "1.981234567", "2.302585093"], ans: 1 },
+        { q: "(10) \\( 5.125 \\times 10^{-7} + 234.56 \\times 10^{-4} = \\)", options: ["0.015778713", "0.023456513", "0.234560512", "0.002345651"], ans: 1 },
+        { q: "(11) \\( 20! = \\)", options: ["\\( 2.432902008 \\times 10^{18} \\)", "\\( 6.08281864 \\times 10^{62} \\)", "\\( 1.123456789 \\times 10^{15} \\)", "\\( 5.43219876 \\times 10^{17} \\)"], ans: 0 },
+        { q: "(12) \\( C_{5}^{30} = \\)", options: ["142506", "1471442973", "123456", "250431"], ans: 0 },
+        { q: "(13) \\( P_{5}^{10} = \\)", options: ["30240", "\\( 3.930087096 \\times 10^{20} \\)", "12345", "151200"], ans: 0 },
+        { q: "(14) \\( \\sin 53^\\circ = \\)", options: ["0.731353701", "0.798635510", "0.601815023", "0.800000000"], ans: 1 },
+        { q: "(15) \\( \\cos 150^\\circ = \\)", options: ["-0.544639035", "-0.866025403", "0.500000000", "-0.707106781"], ans: 1 },
+        { q: "(16) \\( \\tan 45^\\circ = \\)", options: ["1.000000000", "2.355852366", "0.577350269", "1.732050807"], ans: 0 },
+        { q: "(17) \\( \\sin^{-1}(0.6) = \\)", options: ["\\( 23.5781^\\circ \\)", "\\( 36.8698^\\circ \\)", "\\( 41.2345^\\circ \\)", "\\( 30.0000^\\circ \\)"], ans: 1 },
+        { q: "(18) \\( \\cos^{-1}(0.5) = \\)", options: ["\\( 41.4096^\\circ \\)", "\\( 60.0000^\\circ \\)", "\\( 45.0000^\\circ \\)", "\\( 30.0000^\\circ \\)"], ans: 1 },
+        { q: "(19) \\( \\tan^{-1}(-1) = \\)", options: ["\\( -45.0000^\\circ \\)", "\\( -71.5650^\\circ \\)", "\\( -30.0000^\\circ \\)", "\\( 45.0000^\\circ \\)"], ans: 0 },
+        { q: "(20) \\( 2^\\circ \\) 是多少弧度 (rad)?", options: ["0.017453292", "0.034906585", "0.052359877", "0.123456789"], ans: 1 },
+        { q: "(21) \\( 60^\\circ \\) 是多少弧度 (rad)?", options: ["0.6981317", "1.047197551", "1.570796327", "3.141592654"], ans: 1 },
+        { q: "(22) \\( 45^\\circ 30' 00'' \\) 是多少弧度 (rad)?", options: ["0.79412481", "1.17912505", "0.78539816", "0.82345678"], ans: 0 },
+        { q: "(23) \\( 2 \\) 弧度是多少度?", options: ["\\( 57.295779^\\circ \\)", "\\( 114.591559^\\circ \\)", "\\( 180.0000^\\circ \\)", "\\( 90.0000^\\circ \\)"], ans: 1 },
+        { q: "(24) \\( 10 \\) 弧度是多少度?", options: ["\\( 286.47889^\\circ \\)", "\\( 572.95779^\\circ \\)", "\\( 360.0000^\\circ \\)", "\\( 450.1234^\\circ \\)"], ans: 1 },
+        { q: "(25) \\( 3 \\) 弧度是多少度? (度分秒)", options: ["\\( 229^\\circ 10' 59.2'' \\)", "\\( 171^\\circ 53' 14.4'' \\)", "\\( 180^\\circ 00' 00'' \\)", "\\( 120^\\circ 30' 15'' \\)"], ans: 1 },
+        { q: "(26) \\( \\frac{4\\pi}{5} \\) 是多少度?", options: ["\\( 77.14^\\circ \\)", "\\( 144^\\circ \\)", "\\( 120^\\circ \\)", "\\( 150^\\circ \\)"], ans: 1 },
+        { q: "(27) \\( \\sin(5) \\) (弧度) =", options: ["-0.756802495", "-0.958924275", "0.958924275", "0.123456789"], ans: 1 },
+        { q: "(28) \\( \\cos(8) \\) (弧度) =", options: ["0.843853958", "-0.145500033", "-0.989992496", "0.500000000"], ans: 1 },
+        { q: "(29) \\( \\tan(-2) \\) (弧度) =", options: ["0.291006190", "2.185039863", "-2.185039863", "-0.12345678"], ans: 2 },
+        { q: "(30) \\( \\sin(\\frac{\\pi}{6}) = \\)", options: ["0.866025403", "0.500000000", "0.707106781", "1.000000000"], ans: 1 }
+    ];
+
+    var optionLabels = ['(A)', '(B)', '(C)', '(D)'];
+    var currentPage = 0;
+
+    // 動態生成淡淡的柔和背景色
+    function updateBackground() {
+        var hue1 = (currentPage * 45) % 360;
+        var hue2 = (currentPage * 45 + 60) % 360;
+        document.body.style.background = 'linear-gradient(135deg, hsl(' + hue1 + ', 70%, 90%), hsl(' + hue2 + ', 70%, 95%))';
+    }
+
+    // 重新渲染 LaTeX 數學公式
+    function renderMath() {
+        if (typeof MathJax !== 'undefined' && MathJax.typesetPromise) {
+            MathJax.typesetPromise().catch(function (err) {
+                console.log('MathJax Error: ' + err.message);
+            });
+        } else {
+            // 如果 MathJax 還沒準備好，延遲 0.5 秒再試一次
+            setTimeout(renderMath, 500);
+        }
+    }
+
+    // 渲染卡片畫面 
+    function renderCard() {
+        updateBackground();
+        var contentDiv = document.getElementById('card-content');
+        var nextBtn = document.getElementById('next-btn');
+
+        if (currentPage < questions.length * 2) {
+            // 判斷是否為後 30 題 (第31~60頁)
+            var isAnswerPhase = currentPage >= questions.length; 
+            var qIndex = currentPage % questions.length; // 取得 0~29 的對應題號
+            var q = questions[qIndex];
+            
+            // 標示目前的模式與頁碼 (總共 60 頁)
+            var phaseLabel = isAnswerPhase ? " (附解答)" : "";
+            var html = '<div class="page-indicator">' + (currentPage + 1) + ' / 60' + phaseLabel + '</div>';
+            html += '<div class="question">' + q.q + '</div>';
+            html += '<ul class="options">';
+            
+            for (var i = 0; i < q.options.length; i++) {
+                // 只有在 isAnswerPhase (後30題) 為 true 時，才標示正確答案
+                var isCorrect = isAnswerPhase && (i === q.ans);
+                var liClass = isCorrect ? 'correct' : '';
+                var badge = isCorrect ? '<span class="correct-badge">正確答案</span>' : '';
+                
+                html += '<li class="' + liClass + '">';
+                html += '<strong>' + optionLabels[i] + '</strong> &nbsp; ' + q.options[i] + ' ' + badge;
+                html += '</li>';
+            }
+            
+            html += '</ul>';
+            contentDiv.innerHTML = html;
+            
+            nextBtn.style.display = 'inline-block';
+            nextBtn.innerText = '下一題';
+            
+        } else {
+            // 第 61 頁 (結束畫面)
+            var endHtml = '<div class="end-screen">';
+            endHtml += '<div class="end-icon">🎉</div>';
+            endHtml += '恭喜你<br>全部作答完畢！';
+            endHtml += '</div>';
+            
+            contentDiv.innerHTML = endHtml;
+            
+            nextBtn.innerText = '重新開始';
+            nextBtn.setAttribute('onclick', 'location.reload()');
+        }
+
+        renderMath();
+    }
+
+    // 下一頁功能
+    window.nextPage = function() {
+        if (currentPage < questions.length * 2) {
+            currentPage++;
+            renderCard();
+        }
+    };
+
+    renderCard();
+
+</script>
+</body>
+</html>
