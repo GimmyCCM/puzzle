@@ -1,0 +1,480 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>數位時間軸 - 網頁版</title>
+    <!-- 引入 Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- 引入圓潤字體來呈現黏土效果 -->
+    <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@600;700&family=M+PLUS+Rounded+1c:wght@800;900&family=Noto+Sans+TC:wght@400;700;900&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Noto Sans TC', sans-serif;
+            background-color: #0f172a;
+            margin: 0;
+            padding: 0;
+            overflow: hidden; /* 隱藏整體捲軸，作為全畫面 App */
+        }
+        
+        .page-wrapper {
+            width: 100vw;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            background: linear-gradient(135deg, #0f172a 0%, #1e1b4b 100%);
+            position: relative;
+        }
+
+        /* 網頁版時間軸主容器 */
+        #timeline-container {
+            width: 100%;
+            max-width: 1400px;
+            height: 720px;
+            position: relative;
+        }
+
+        /* 背景裝飾光暈 */
+        .glow {
+            position: absolute;
+            width: 800px;
+            height: 800px;
+            background: radial-gradient(circle, rgba(99,102,241,0.15) 0%, rgba(0,0,0,0) 70%);
+            top: -200px;
+            left: 50%;
+            transform: translateX(-50%);
+            border-radius: 50%;
+            pointer-events: none;
+        }
+        .glow-bottom {
+            position: absolute;
+            width: 800px;
+            height: 800px;
+            background: radial-gradient(circle, rgba(244,63,94,0.1) 0%, rgba(0,0,0,0) 70%);
+            bottom: -300px;
+            left: 50%;
+            transform: translateX(-50%);
+            border-radius: 50%;
+            pointer-events: none;
+        }
+
+        /* 黏土字體特效 (Claymorphism) */
+        .clay-font {
+            font-family: 'Fredoka', 'M PLUS Rounded 1c', sans-serif;
+            font-weight: 900;
+        }
+        
+        /* 標題彩色黏土跳動特效 */
+        .clay-title-char {
+            display: inline-block;
+            transition: transform 0.3s ease;
+        }
+        .clay-title-char:hover {
+            transform: scale(1.1) translateY(-5px) !important;
+        }
+        .clay-title-char:nth-child(even) {
+            transform: rotate(3deg) translateY(2px);
+        }
+        .clay-title-char:nth-child(odd) {
+            transform: rotate(-3deg);
+        }
+
+        /* 各年份彩色樣式 */
+        .clay-cyan   { color: #67e8f9; }
+        .clay-blue   { color: #93c5fd; }
+        .clay-indigo { color: #a5b4fc; }
+        .clay-purple { color: #d8b4fe; }
+        .clay-pink   { color: #f9a8d4; }
+        .clay-rose   { color: #fda4af; }
+
+        /* 項目動畫與按鈕特效 */
+        .timeline-item {
+            transition: transform 0.3s ease;
+        }
+        .timeline-item:hover {
+            transform: translateX(-50%) translateY(-5px);
+        }
+        .timeline-item.bottom:hover {
+            transform: translateX(-50%) translateY(5px);
+        }
+        
+        /* 圓點按鈕基礎、滑鼠 Hover 與 Active(目前選取) 變黃特效 */
+        .timeline-dot {
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            cursor: pointer;
+            outline: none;
+        }
+        .timeline-dot.active,
+        .timeline-dot:hover {
+            background-color: #facc15 !important; 
+            border-color: #fef08a !important;     
+            box-shadow: 0 0 40px rgba(250, 204, 21, 1) !important; 
+            transform: translateX(-50%) scale(1.4) !important; 
+            z-index: 50;
+        }
+        
+        /* 模態框 動畫 */
+        .modal-overlay {
+            transition: opacity 0.4s ease, backdrop-filter 0.4s ease;
+        }
+        .modal-content {
+            transition: transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0.4s ease;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="page-wrapper">
+        <div class="glow"></div>
+        <div class="glow-bottom"></div>
+
+        <!-- 網頁主容器 -->
+        <div id="timeline-container">
+            
+            <!-- 快速鍵提示按鈕 (向上移動與大標題對齊，文字放大 1.5倍) -->
+            <button onclick="openHelpModal()" class="absolute top-[35px] right-[5%] translate-x-1/2 bg-slate-800 border-2 border-slate-600 text-cyan-400 hover:text-white hover:bg-slate-700 px-6 py-3 rounded-full shadow-[0_0_15px_rgba(0,0,0,0.5)] transition-all z-50 font-bold group text-[27px]">
+                <span class="group-hover:scale-105 transition-transform tracking-wide inline-block">快速鍵</span>
+            </button>
+
+            <!-- 彩色黏土主標題 -->
+            <h1 class="clay-font text-[65px] text-center relative z-20 m-0 pt-[30px] flex justify-center gap-1 cursor-default">
+                <span class="clay-title-char" style="color: #FF6B6B;">數</span>
+                <span class="clay-title-char" style="color: #4ECDC4;">位</span>
+                <span class="clay-title-char" style="color: #FFE66D;">時</span>
+                <span class="clay-title-char" style="color: #a5b4fc;">間</span>
+                <span class="clay-title-char" style="color: #FFB6B9;">軸</span>
+            </h1>
+
+            <!-- 水平主軸線 -->
+            <div class="absolute top-[380px] left-[5%] right-[5%] h-[4px] bg-gradient-to-r from-cyan-400 via-purple-500 to-rose-500 rounded-full z-10 shadow-[0_0_15px_rgba(255,255,255,0.2)]">
+
+                <!-- 第 1 項 (奇數-上方) -->
+                <div class="timeline-item absolute w-[250px] flex flex-col items-center z-20" style="left: 0%; bottom: 2px; transform: translateX(-50%);">
+                    <div class="clay-font clay-cyan text-[36px] tracking-wide">1967</div>
+                    <div class="title text-[33px] font-bold text-white mt-1 mb-2 tracking-wider">計算器</div>
+                    <div class="desc text-[22px] text-gray-300 text-center leading-relaxed">手持電子計算器<br>於1967年誕生</div>
+                    <div class="w-[2px] h-[40px] bg-cyan-400 mt-3 opacity-70"></div>
+                    <button onclick="openModal(0)" class="timeline-dot absolute w-[48px] h-[48px] bg-[#0f172a] rounded-full border-[8px] border-cyan-400 shadow-[0_0_20px_rgba(34,211,238,0.8)]" style="bottom: -24px; left: 50%; transform: translateX(-50%);"></button>
+                </div>
+
+                <!-- 第 2 項 (偶數-下方) -->
+                <div class="timeline-item bottom absolute w-[250px] flex flex-col items-center z-20" style="left: 10%; top: 2px; transform: translateX(-50%);">
+                    <button onclick="openModal(1)" class="timeline-dot absolute w-[48px] h-[48px] bg-[#0f172a] rounded-full border-[8px] border-cyan-400 shadow-[0_0_20px_rgba(34,211,238,0.8)]" style="top: -24px; left: 50%; transform: translateX(-50%);"></button>
+                    <div class="w-[2px] h-[40px] bg-cyan-400 mb-3 opacity-70"></div>
+                    <div class="clay-font clay-cyan text-[36px] tracking-wide">1980</div>
+                    <div class="title text-[33px] font-bold text-white mt-1 mb-2 tracking-wider">個人電腦</div>
+                    <div class="desc text-[22px] text-gray-300 text-center leading-relaxed">PC於1980年<br>開始代普及</div>
+                </div>
+
+                <!-- 第 3 項 (奇數-上方) -->
+                <div class="timeline-item absolute w-[250px] flex flex-col items-center z-20" style="left: 20%; bottom: 2px; transform: translateX(-50%);">
+                    <div class="clay-font clay-blue text-[36px] tracking-wide">1988</div>
+                    <div class="title text-[33px] font-bold text-white mt-1 mb-2 tracking-wider">Mathematica</div>
+                    <div class="desc text-[22px] text-gray-300 text-center leading-relaxed">現稱 Wolfram語言<br>發佈於1988年</div>
+                    <div class="w-[2px] h-[40px] bg-blue-400 mt-3 opacity-70"></div>
+                    <button onclick="openModal(2)" class="timeline-dot absolute w-[48px] h-[48px] bg-[#0f172a] rounded-full border-[8px] border-blue-400 shadow-[0_0_20px_rgba(96,165,250,0.8)]" style="bottom: -24px; left: 50%; transform: translateX(-50%);"></button>
+                </div>
+
+                <!-- 第 4 項 (偶數-下方) -->
+                <div class="timeline-item bottom absolute w-[250px] flex flex-col items-center z-20" style="left: 30%; top: 2px; transform: translateX(-50%);">
+                    <button onclick="openModal(3)" class="timeline-dot absolute w-[48px] h-[48px] bg-[#0f172a] rounded-full border-[8px] border-blue-400 shadow-[0_0_20px_rgba(96,165,250,0.8)]" style="top: -24px; left: 50%; transform: translateX(-50%);"></button>
+                    <div class="w-[2px] h-[40px] bg-blue-400 mb-3 opacity-70"></div>
+                    <div class="clay-font clay-blue text-[36px] tracking-wide">1990</div>
+                    <div class="title text-[33px] font-bold text-white mt-1 mb-2 tracking-wider">組合語言</div>
+                    <div class="desc text-[22px] text-gray-300 text-center leading-relaxed">病毒藏在主記憶體<br>始於1990年</div>
+                </div>
+
+                <!-- 第 5 項 (奇數-上方) -->
+                <div class="timeline-item absolute w-[250px] flex flex-col items-center z-20" style="left: 40%; bottom: 2px; transform: translateX(-50%);">
+                    <div class="clay-font clay-indigo text-[36px] tracking-wide">1991</div>
+                    <div class="title text-[33px] font-bold text-white mt-1 mb-2 tracking-wider">MATLAB</div>
+                    <div class="desc text-[22px] text-gray-300 text-center leading-relaxed">連線至伺服器<br>1991年無圖形介面</div>
+                    <div class="w-[2px] h-[40px] bg-indigo-400 mt-3 opacity-70"></div>
+                    <button onclick="openModal(4)" class="timeline-dot absolute w-[48px] h-[48px] bg-[#0f172a] rounded-full border-[8px] border-indigo-400 shadow-[0_0_20px_rgba(129,140,248,0.8)]" style="bottom: -24px; left: 50%; transform: translateX(-50%);"></button>
+                </div>
+
+                <!-- 第 6 項 (偶數-下方) -->
+                <div class="timeline-item bottom absolute w-[250px] flex flex-col items-center z-20" style="left: 50%; top: 2px; transform: translateX(-50%);">
+                    <button onclick="openModal(5)" class="timeline-dot absolute w-[48px] h-[48px] bg-[#0f172a] rounded-full border-[8px] border-indigo-400 shadow-[0_0_20px_rgba(129,140,248,0.8)]" style="top: -24px; left: 50%; transform: translateX(-50%);"></button>
+                    <div class="w-[2px] h-[40px] bg-indigo-400 mb-3 opacity-70"></div>
+                    <div class="clay-font clay-indigo text-[36px] tracking-wide">1997</div>
+                    <div class="title text-[33px] font-bold text-white mt-1 mb-2 tracking-wider">Excel</div>
+                    <div class="desc text-[22px] text-gray-300 text-center leading-relaxed">自動化功能，1997年<br>巨集與VBA更完善</div>
+                </div>
+
+                <!-- 第 7 項 (奇數-上方) -->
+                <div class="timeline-item absolute w-[250px] flex flex-col items-center z-20" style="left: 60%; bottom: 2px; transform: translateX(-50%);">
+                    <div class="clay-font clay-purple text-[36px] tracking-wide">2000</div>
+                    <div class="title text-[33px] font-bold text-white mt-1 mb-2 tracking-wider">C++</div>
+                    <div class="desc text-[22px] text-gray-300 text-center leading-relaxed">2000年幫兒子<br>把計概課本看完</div>
+                    <div class="w-[2px] h-[40px] bg-purple-400 mt-3 opacity-70"></div>
+                    <button onclick="openModal(6)" class="timeline-dot absolute w-[48px] h-[48px] bg-[#0f172a] rounded-full border-[8px] border-purple-400 shadow-[0_0_20px_rgba(192,132,252,0.8)]" style="bottom: -24px; left: 50%; transform: translateX(-50%);"></button>
+                </div>
+
+                <!-- 第 8 項 (偶數-下方) -->
+                <div class="timeline-item bottom absolute w-[250px] flex flex-col items-center z-20" style="left: 70%; top: 2px; transform: translateX(-50%);">
+                    <button onclick="openModal(7)" class="timeline-dot absolute w-[48px] h-[48px] bg-[#0f172a] rounded-full border-[8px] border-purple-400 shadow-[0_0_20px_rgba(192,132,252,0.8)]" style="top: -24px; left: 50%; transform: translateX(-50%);"></button>
+                    <div class="w-[2px] h-[40px] bg-purple-400 mb-3 opacity-70"></div>
+                    <div class="clay-font clay-purple text-[36px] tracking-wide">2005</div>
+                    <div class="title text-[33px] font-bold text-white mt-1 mb-2 tracking-wider">GSP</div>
+                    <div class="desc text-[22px] text-gray-300 text-center leading-relaxed">2005年確立在<br>數學教育領域的地位</div>
+                </div>
+
+                <!-- 第 9 項 (奇數-上方) -->
+                <div class="timeline-item absolute w-[250px] flex flex-col items-center z-20" style="left: 80%; bottom: 2px; transform: translateX(-50%);">
+                    <div class="clay-font clay-pink text-[36px] tracking-wide">2014</div>
+                    <div class="title text-[33px] font-bold text-white mt-1 mb-2 tracking-wider">GeoGebra 5.0</div>
+                    <div class="desc text-[22px] text-gray-300 text-center leading-relaxed">2014年9月<br>正式發布</div>
+                    <div class="w-[2px] h-[40px] bg-pink-400 mt-3 opacity-70"></div>
+                    <button onclick="openModal(8)" class="timeline-dot absolute w-[48px] h-[48px] bg-[#0f172a] rounded-full border-[8px] border-pink-400 shadow-[0_0_20px_rgba(244,114,182,0.8)]" style="bottom: -24px; left: 50%; transform: translateX(-50%);"></button>
+                </div>
+
+                <!-- 第 10 項 (偶數-下方) -->
+                <div class="timeline-item bottom absolute w-[250px] flex flex-col items-center z-20" style="left: 90%; top: 2px; transform: translateX(-50%);">
+                    <button onclick="openModal(9)" class="timeline-dot absolute w-[48px] h-[48px] bg-[#0f172a] rounded-full border-[8px] border-pink-400 shadow-[0_0_20px_rgba(244,114,182,0.8)]" style="top: -24px; left: 50%; transform: translateX(-50%);"></button>
+                    <div class="w-[2px] h-[40px] bg-pink-400 mb-3 opacity-70"></div>
+                    <div class="clay-font clay-pink text-[36px] tracking-wide">2018</div>
+                    <div class="title text-[33px] font-bold text-white mt-1 mb-2 tracking-wider">Python 3.7</div>
+                    <div class="desc text-[22px] text-gray-300 text-center leading-relaxed">2018年6月<br>正式發佈</div>
+                </div>
+
+                <!-- 第 11 項 (奇數-上方) -->
+                <div class="timeline-item absolute w-[250px] flex flex-col items-center z-20" style="left: 100%; bottom: 2px; transform: translateX(-50%);">
+                    <div class="clay-font clay-rose text-[36px] tracking-wide">2026</div>
+                    <div class="title text-[33px] font-bold text-white mt-1 mb-2 tracking-wider">Gemini AI</div>
+                    <div class="desc text-[22px] text-gray-300 text-center leading-relaxed">2026年製作<br>生成式AI APPS</div>
+                    <div class="w-[2px] h-[40px] bg-rose-400 mt-3 opacity-70"></div>
+                    <button onclick="openModal(10)" class="timeline-dot absolute w-[48px] h-[48px] bg-[#0f172a] rounded-full border-[8px] border-rose-400 shadow-[0_0_20px_rgba(251,113,133,0.8)]" style="bottom: -24px; left: 50%; transform: translateX(-50%);"></button>
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+    <!-- 90% 放大彈出視窗 (Modal) -->
+    <!-- 點擊任意處皆可關閉 -->
+    <div id="modal-overlay" onclick="closeModal()" class="modal-overlay fixed inset-0 bg-black/80 backdrop-blur-md z-[100] hidden flex justify-center items-center opacity-0 cursor-pointer">
+        <div id="modal-content" class="modal-content w-[90vw] h-[90vh] bg-slate-900/95 backdrop-blur-xl rounded-[40px] border-4 shadow-2xl p-16 flex flex-col items-center justify-center relative transform scale-90 opacity-0 cursor-default">
+            
+            <!-- 關閉按鈕 -->
+            <button class="absolute top-8 right-10 text-gray-400 hover:text-white text-[90px] font-light transition-colors focus:outline-none">
+                &times;
+            </button>
+            
+            <!-- 動態填入的內容區 -->
+            <div id="modal-year" class="clay-font text-[140px] mb-6 leading-none"></div>
+            <div id="modal-title" class="text-[90px] font-bold text-white mb-12 tracking-widest border-b-2 border-gray-600 pb-8 px-16 text-center"></div>
+            <div id="modal-desc" class="text-[54px] text-gray-300 leading-relaxed text-left max-w-6xl w-full px-12"></div>
+        </div>
+    </div>
+
+    <!-- 快速鍵說明圖層 (Help Modal) -->
+    <div id="help-overlay" onclick="closeHelpModal()" class="modal-overlay fixed inset-0 bg-black/70 backdrop-blur-sm z-[110] hidden flex justify-center items-center opacity-0">
+        <div id="help-content" onclick="event.stopPropagation()" class="modal-content bg-slate-800 border-2 border-slate-600 rounded-3xl p-10 flex flex-col relative transform scale-90 opacity-0 shadow-[0_0_50px_rgba(0,0,0,0.8)] cursor-default">
+            
+            <button onclick="closeHelpModal()" class="absolute top-4 right-6 text-gray-400 hover:text-white text-[60px] font-light transition-colors focus:outline-none">
+                &times;
+            </button>
+
+            <h2 class="text-[45px] font-bold text-cyan-400 mb-8 text-center tracking-widest border-b border-slate-600 pb-4">⌨️ 快速鍵對照表</h2>
+            
+            <div class="grid grid-cols-[auto_1fr] gap-y-5 gap-x-6 text-[33px] text-gray-300 items-center px-4">
+                <div class="text-right">
+                    <kbd class="bg-slate-700 px-4 py-2 rounded-lg text-white border-b-4 border-slate-900 font-mono text-[27px]">1</kbd> ~ 
+                    <kbd class="bg-slate-700 px-4 py-2 rounded-lg text-white border-b-4 border-slate-900 font-mono text-[27px]">9</kbd>
+                </div>
+                <div>開啟第 <span class="text-cyan-300 font-bold">1</span> 到 <span class="text-cyan-300 font-bold">9</span> 個年度資料</div>
+
+                <div class="text-right">
+                    <kbd class="bg-slate-700 px-4 py-2 rounded-lg text-white border-b-4 border-slate-900 font-mono text-[27px]">0</kbd>
+                </div>
+                <div>開啟第 <span class="text-cyan-300 font-bold">10</span> 個年度資料</div>
+
+                <div class="text-right">
+                    <kbd class="bg-slate-700 px-[18px] py-2 rounded-lg text-white border-b-4 border-slate-900 font-mono text-[27px]">-</kbd>
+                </div>
+                <div>開啟第 <span class="text-cyan-300 font-bold">11</span> 個年度資料</div>
+
+                <div class="text-right mt-2">
+                    <kbd class="bg-slate-700 px-3 py-2 rounded-lg text-white border-b-4 border-slate-900 font-mono text-[27px]">➡️</kbd> / 
+                    <kbd class="bg-slate-700 px-3 py-2 rounded-lg text-white border-b-4 border-slate-900 font-mono text-[27px]">⬅️</kbd>
+                </div>
+                <div class="mt-2">切換 <span class="text-cyan-300 font-bold">下一個</span> / <span class="text-cyan-300 font-bold">上一個</span> 按鈕</div>
+
+                <div class="text-right mt-2">
+                    <kbd class="bg-slate-700 px-4 py-2 rounded-lg text-white border-b-4 border-slate-900 font-mono text-[27px]">Enter</kbd>
+                </div>
+                <div class="mt-2">關閉畫面，返回首頁</div>
+            </div>
+
+            <div class="mt-8 pt-5 border-t border-slate-600 text-center text-rose-300 text-[27px]">
+                ※ 提示：在檢視年度資料時，按下「任意鍵」或「點擊畫面任意處」皆可返回首頁。
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 將所有資料移至 JS 陣列，方便程式自動索引與快速鍵操作
+        const timelineData = [
+            { year: '1967', title: '計算器', desc: '手持電子計算器<br>於1967年正式誕生，開啟了個人運算的新紀元。', color: 'cyan' },
+            { year: '1980', title: '個人電腦', desc: 'PC於1980年開始代普及，進入千家萬戶，徹底改變人類的工作與生活型態。', color: 'cyan' },
+            { year: '1988', title: 'Mathematica', desc: '現稱為 Wolfram 語言，於1988年發佈。<br>為數學運算與符號處理帶來了革命性的突破。', color: 'blue' },
+            { year: '1990', title: '組合語言', desc: '電腦病毒開始藏匿在主記憶體之中。<br>始於1990年的惡意軟體演化史。', color: 'blue' },
+            { year: '1991', title: 'MATLAB', desc: '1991年時期的MATLAB需連線至伺服器執行。<br>當時系統尚無圖形介面，完全依靠指令碼運作。', color: 'indigo' },
+            { year: '1997', title: 'Excel', desc: '1997年版本大幅完善了自動化功能。<br>透過巨集與VBA，讓試算表晉升為強大的程式工具。', color: 'indigo' },
+            { year: '2000', title: 'C++', desc: '千禧年(2000年)的難忘回憶：<br>親自幫兒子把計算機概論課本研讀完畢。', color: 'purple' },
+            { year: '2005', title: 'GSP', desc: '幾何畫板 (The Geometer\'s Sketchpad) 。<br>2005年確立了其在數學教育領域不可撼動的地位。', color: 'purple' },
+            { year: '2014', title: 'GeoGebra 5.0', desc: '開源動態數學軟體 GeoGebra 5.0<br>2014年9月正式發布，整合了幾何、代數與微積分。', color: 'pink' },
+            { year: '2018', title: 'Python 3.7', desc: 'Python 3.7 2018年6月正式發佈。<br>帶來了資料類別 (Data Classes) 等重要新特性。', color: 'pink' },
+            { year: '2026', title: 'Gemini AI', desc: '邁向新紀元！<br>於2026年運用 Gemini AI 技術，快速製作強大的生成式 AI 網頁應用程式。', color: 'rose' }
+        ];
+
+        const colorMap = {
+            'cyan':   { border: 'border-cyan-400',   shadow: 'shadow-[0_0_60px_rgba(34,211,238,0.4)]',   clayClass: 'clay-cyan' },
+            'blue':   { border: 'border-blue-400',   shadow: 'shadow-[0_0_60px_rgba(96,165,250,0.4)]',   clayClass: 'clay-blue' },
+            'indigo': { border: 'border-indigo-400', shadow: 'shadow-[0_0_60px_rgba(129,140,248,0.4)]', clayClass: 'clay-indigo' },
+            'purple': { border: 'border-purple-400', shadow: 'shadow-[0_0_60px_rgba(192,132,252,0.4)]', clayClass: 'clay-purple' },
+            'pink':   { border: 'border-pink-400',   shadow: 'shadow-[0_0_60px_rgba(244,114,182,0.4)]',   clayClass: 'clay-pink' },
+            'rose':   { border: 'border-rose-400',   shadow: 'shadow-[0_0_60px_rgba(251,113,133,0.4)]',   clayClass: 'clay-rose' }
+        };
+
+        // 狀態追蹤
+        let isModalOpen = false;
+        let isHelpModalOpen = false;
+        let currentIndex = -1; // -1 代表位於首頁，尚未開啟任何項目
+
+        // 更新圓圈的選取狀態 (黃色)
+        function updateActiveDot() {
+            const dots = document.querySelectorAll('.timeline-dot');
+            dots.forEach((dot, index) => {
+                if (index === currentIndex) {
+                    dot.classList.add('active');
+                } else {
+                    dot.classList.remove('active');
+                }
+            });
+        }
+
+        // 開啟年度資料視窗
+        function openModal(index) {
+            currentIndex = index;
+            isModalOpen = true;
+            
+            // 讓畫面上對應的圓圈變成黃色
+            updateActiveDot();
+            
+            const data = timelineData[index];
+            const theme = colorMap[data.color];
+            const overlay = document.getElementById('modal-overlay');
+            const content = document.getElementById('modal-content');
+            
+            const noBreakDesc = data.desc.replace(/<br\s*\/?>/gi, '');
+
+            document.getElementById('modal-year').innerHTML = data.year;
+            document.getElementById('modal-title').innerHTML = data.title;
+            document.getElementById('modal-desc').innerHTML = noBreakDesc;
+            document.getElementById('modal-year').className = `clay-font text-[140px] mb-6 leading-none ${theme.clayClass}`;
+            
+            content.className = `modal-content w-[90vw] h-[90vh] bg-slate-900/95 backdrop-blur-xl rounded-[40px] border-4 p-16 flex flex-col items-center justify-center relative transform scale-90 opacity-0 transition-all duration-300 cursor-default ${theme.border} ${theme.shadow}`;
+
+            overlay.classList.remove('hidden');
+            setTimeout(() => {
+                overlay.classList.remove('opacity-0');
+                content.classList.remove('scale-90', 'opacity-0');
+                content.classList.add('scale-100', 'opacity-100');
+            }, 10);
+        }
+
+        // 關閉年度資料視窗 (返回首頁)
+        function closeModal() {
+            if (!isModalOpen) return;
+            isModalOpen = false;
+            
+            const overlay = document.getElementById('modal-overlay');
+            const content = document.getElementById('modal-content');
+
+            overlay.classList.add('opacity-0');
+            content.classList.remove('scale-100', 'opacity-100');
+            content.classList.add('scale-90', 'opacity-0');
+
+            setTimeout(() => overlay.classList.add('hidden'), 400);
+        }
+
+        // 開啟說明工具視窗
+        function openHelpModal() {
+            isHelpModalOpen = true;
+            const overlay = document.getElementById('help-overlay');
+            const content = document.getElementById('help-content');
+            overlay.classList.remove('hidden');
+            setTimeout(() => {
+                overlay.classList.remove('opacity-0');
+                content.classList.remove('scale-90', 'opacity-0');
+                content.classList.add('scale-100', 'opacity-100');
+            }, 10);
+        }
+
+        // 關閉說明工具視窗
+        function closeHelpModal() {
+            if (!isHelpModalOpen) return;
+            isHelpModalOpen = false;
+            const overlay = document.getElementById('help-overlay');
+            const content = document.getElementById('help-content');
+            overlay.classList.add('opacity-0');
+            content.classList.remove('scale-100', 'opacity-100');
+            content.classList.add('scale-90', 'opacity-0');
+            setTimeout(() => overlay.classList.add('hidden'), 400);
+        }
+
+        // ---------------- 鍵盤快速鍵全域監聽 ----------------
+        document.addEventListener('keydown', function(event) {
+            
+            // 如果工具說明正開啟，按任何鍵或 ESC 都直接關閉說明
+            if (isHelpModalOpen) {
+                closeHelpModal();
+                return;
+            }
+
+            // 【規則】在彈出的圖層：按任意鍵都反回首頁
+            if (isModalOpen) {
+                closeModal();
+                return;
+            }
+
+            // 以下為「首頁狀態」時的導航操作
+            const key = event.key;
+            
+            // 按數字 1~9 代表 第1~9項 (Index 0~8)
+            if (key >= '1' && key <= '9') {
+                openModal(parseInt(key) - 1);
+            } 
+            // 按數字 0 代表 第10項 (Index 9)
+            else if (key === '0') {
+                openModal(9);
+            } 
+            // 按減號 - 代表 第11項 (Index 10)
+            else if (key === '-' || key === '_') {
+                openModal(10);
+            } 
+            // 按向右鍵：下一個按鈕
+            else if (key === 'ArrowRight') {
+                if (currentIndex === -1) {
+                    openModal(0); // 尚未選擇過，從第1個開始
+                } else {
+                    openModal((currentIndex + 1) % timelineData.length);
+                }
+            } 
+            // 按向左鍵：上一個按鈕
+            else if (key === 'ArrowLeft') {
+                if (currentIndex === -1) {
+                    openModal(timelineData.length - 1); // 尚未選擇過，從最後1個開始
+                } else {
+                    openModal((currentIndex - 1 + timelineData.length) % timelineData.length);
+                }
+            }
+            // 按 Enter 鍵：返回首頁。因為目前已經是首頁，所以不需要做額外動作。
+        });
+    </script>
+</body>
+</html>
